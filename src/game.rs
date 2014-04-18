@@ -340,19 +340,19 @@ pub fn run() -> Result<(), ~str> {
             match event::poll_event() {
                 event::QuitEvent(_) => break 'main,
                 event::KeyDownEvent(_, _, keycode::LeftKey, _, _) if playing => {
-                    game.move((-1, 0));
-                    game.add_random_tile();
-                }
-                event::KeyDownEvent(_, _, keycode::RightKey, _, _) if playing => {
-                    game.move((1, 0));
-                    game.add_random_tile();
-                }
-                event::KeyDownEvent(_, _, keycode::UpKey, _, _) if playing => {
                     game.move((0, -1));
                     game.add_random_tile();
                 }
-                event::KeyDownEvent(_, _, keycode::DownKey, _, _) if playing => {
+                event::KeyDownEvent(_, _, keycode::RightKey, _, _) if playing => {
                     game.move((0, -0));
+                    game.add_random_tile();
+                }
+                event::KeyDownEvent(_, _, keycode::UpKey, _, _) if playing => {
+                    game.move((-1, 0));
+                    game.add_random_tile();
+                }
+                event::KeyDownEvent(_, _, keycode::DownKey, _, _) if playing => {
+                    game.move((1, 0));
                     game.add_random_tile();
                 }
                 event::KeyDownEvent(_, _, key, _, _) => {
