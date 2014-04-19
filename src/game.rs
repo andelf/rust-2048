@@ -7,9 +7,11 @@ use sdl2::{event, keycode};
 // for Renderer trait
 use sdl2_gfx::primitives::DrawRenderer;
 use sdl2::pixels::{Color, RGB, RGBA};
+use sdl2::rwops;
 use std::iter::range_step;
 use std::cmp::max;
 use rand::random;
+use sdl2_ttf::LoaderRWops;
 
 
 static SCREEN_WIDTH : int = 800;
@@ -33,6 +35,9 @@ static CELL_COLORS: &'static [Color] = &'static [
     RGB(0xf5, 0x95, 0x64), RGB(0xf6, 0x7c, 0x5f), RGB(0xf6, 0x5e, 0x3b),
     RGB(0xed, 0xcf, 0x72), RGB(0xed, 0xcc, 0x61), RGB(0xed, 0xc8, 0x50),
     RGB(0xed, 0xc5, 0x3f), RGB(0xed, 0xc2, 0x2e), RGB(0x3c, 0x3a, 0x32), ];
+
+// Font
+static TTF_FONT_RAW_BYTES: &'static [u8] = include_bin!("./res/OpenDyslexic-Regular.ttf");
 
 
 static WIDTH  : int = 4;
@@ -333,7 +338,12 @@ pub fn run() -> Result<(), ~str> {
     let mut fpsm = sdl2_gfx::framerate::FPSManager::new();
     try!(fpsm.set_framerate(50));
 
-    let font = try!(ttf::Font::from_file(&Path::new("./xiaonaipao.ttf"), 48));
+
+    let font : ~ttf::Font = {
+        let raw = try!(rwops::RWops::from_bytes(TTF_FONT_RAW_BYTES));
+        // or try!(ttf::Font::from_file(&Path::new("./OpenDyslexic-Regular.ttf"), 48));
+        try!(raw.load_font(48))
+    };
     let mut game = Game::new();
 
     let mut playing = false;
