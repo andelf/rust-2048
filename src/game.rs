@@ -50,7 +50,21 @@ impl Game {
         }
     }
 
-        pub fn int_to_vec(dir: int) -> (int, int) /* x, y */
+    pub fn max_cell(&self) -> int {
+        let mut m = 0;
+        for i in range(0, HEIGHT as uint) {
+            for j in range(0, WIDTH as uint) {
+                m = max(m, self.grid[i][j]);
+            }
+        }
+        m
+    }
+
+    pub fn reset(&mut self) {
+        *self = Game::new()
+    }
+
+    pub fn int_to_vec(dir: int) -> (int, int) /* x, y */
     {
         match dir
         {
@@ -313,7 +327,6 @@ pub fn run() -> Result<(), ~str> {
     let win = try!(video::Window::new(
         "Rust - 2048", video::PosCentered, video::PosCentered, SCREEN_WIDTH, SCREEN_HEIGHT,
         [video::Shown]));
-
     let ren = try!(render::Renderer::from_window(
         win, render::DriverAuto, [render::Accelerated]));
 
@@ -324,6 +337,7 @@ pub fn run() -> Result<(), ~str> {
     let mut game = Game::new();
 
     let mut playing = false;
+    let mut celebrating = false;
 
     'main : loop {
         'event : loop {
@@ -338,9 +352,15 @@ pub fn run() -> Result<(), ~str> {
 
             try!(game.draw_on(&*ren, &*font, (SCREEN_WIDTH / 2 - 400 / 2, 100, 400, 400)));
 
-            if !playing {
+            if celebrating || (playing && game.list_move().len() == 0) { // can't move
+                try!(draw_popup(&*ren, &*font, format!("Score: {}! Max Cell: {}", game.score, game.max_cell())));
+                playing = false;
+                celebrating = true;
+
+            } else if !playing && !celebrating {
                 try!(draw_popup(&*ren, &*font, "Press SPACE to start!"));
             }
+
             // == main drawing ends ==
             ren.present();
 
@@ -368,6 +388,8 @@ pub fn run() -> Result<(), ~str> {
                     } else if key == keycode::SpaceKey {
                         if !playing {
                             playing = true;
+                            celebrating = false;
+                            game.reset();
                             game.add_random_tile();
                             game.add_random_tile();
                         }
