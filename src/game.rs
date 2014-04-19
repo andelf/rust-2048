@@ -1,11 +1,10 @@
 use sdl2;
 use sdl2_gfx;
-use sdl2_ttf;
+use ttf = sdl2_ttf;
 use sdl2::video;
+use sdl2::render;
 use sdl2::{event, keycode};
-use sdl2::pixels;
-use sdl2_image::LoadSurface;
-use sdl2_image::LoadTexture;
+// for Renderer trait
 use sdl2_gfx::primitives::DrawRenderer;
 use sdl2::pixels::{Color, RGB, RGBA};
 use std::iter::range_step;
@@ -17,22 +16,7 @@ static SCREEN_WIDTH : int = 800;
 static SCREEN_HEIGHT : int = 600;
 
 
-/* colors
-bg #eee4da fg #f9f6f2
-
-#f59563
-#f67c5f
-#f65e3b
-#edcf72
-#edcc61
-#edc850
- #edc53f
-#edc22e
-#3c3a32
-*/
-
 // hadle the annoying Rect i32
-
 macro_rules! rect(
     ($x:expr, $y:expr, $w:expr, $h:expr) => (
         sdl2::rect::Rect::new($x as i32, $y as i32, $w as i32, $h as i32)
@@ -41,7 +25,7 @@ macro_rules! rect(
 
 // colors
 static BG_COLOR: Color = RGB(0xee, 0xe4, 0xda);
-static FG_COLOR: Color = RGB(0xf9, 0xf6, 0xf2);
+static FG_COLOR: Color = RGB(0x77, 0x6e, 0x65);
 static CHAR_COLOR: Color = RGB(0xee, 0x33, 0x66);
 static CONTAINER_COLOR: Color = RGBA(0x77, 0x6e, 0x65, 200);
 static CELL_COLORS: &'static [Color] = &'static [
@@ -242,40 +226,39 @@ impl Game {
         }
     }
 
-    pub fn draw_on(&self, ren: &sdl2::render::Renderer, font: &sdl2_ttf::Font,
+    pub fn draw_on(&self, ren: &render::Renderer, font: &ttf::Font,
                    (x,y,w,h): (int,int,int,int)) -> Result<(), ~str> {
         assert_eq!(w, h);
         // BEST in 500x500
         static CONTAINER_PADDING: int = 10;
         let cell_width = (w - CONTAINER_PADDING * 5) / 4;
         assert!(cell_width > 50); // Min width
-        ren.box_(x as i16, y as i16, (x+w) as i16, (y+h) as i16, CONTAINER_COLOR);
+        try!(ren.box_(x as i16, y as i16, (x+w) as i16, (y+h) as i16, CONTAINER_COLOR));
         for i in range(0, HEIGHT) {
             for j in range(0, WIDTH) {
                 let val = self.grid[i as uint][j as uint];
                 let c = if val == 0 {
-                    0
+                    0           // or will be +Infinity
                 } else {
                     (val as f64).log2() as uint
                 };
-                println!("c => {}", c);
                 let bx = (x + CONTAINER_PADDING * (j + 1) + cell_width * j) as i16;
                 let by = (y + CONTAINER_PADDING * (i + 1) + cell_width * i) as i16;
-                ren.box_(bx, by, bx + cell_width as i16, by + cell_width as i16,
-                         CELL_COLORS[c]);
+                try!(ren.box_(bx, by, bx + cell_width as i16, by + cell_width as i16,
+                              CELL_COLORS[c]));
                 if val != 0 {
                     let (tex, w, h) = {
                         let wd = format!("{}", val);
                         let (w, h) = try!(font.size_of_str(wd));
-                        let text = try!(font.render_str_blended(wd, RGB(0x77, 0x6e, 0x65)));
+                        let text = try!(font.render_str_blended(wd, FG_COLOR));
                         (try!(ren.create_texture_from_surface(text)), w, h)
                     };
                     if h > w {
-                        ren.copy(tex, None, Some(rect!(bx as int + cell_width / 2 - w/2, by as int + cell_width / 2 - h/2,
-                                                       w, h)));
+                        try!(ren.copy(tex, None, Some(rect!(bx as int + cell_width / 2 - w/2, by as int + cell_width / 2 - h/2,
+                                                            w, h))));
                     } else {
-                        ren.copy(tex, None, Some(rect!(bx as int + cell_width / 2 - w/2, by as int + cell_width / 2 - h/2,
-                                                       w, h)));
+                        try!(ren.copy(tex, None, Some(rect!(bx as int + cell_width / 2 - w/2, by as int + cell_width / 2 - h/2,
+                                                            w, h))));
                     }
                 }
             }
@@ -286,56 +269,80 @@ impl Game {
 
 
 
-fn draw_title(ren: &sdl2::render::Renderer, font: &sdl2_ttf::Font) -> Result<(), ~str> {
+fn draw_title(ren: &render::Renderer, font: &ttf::Font) -> Result<(), ~str> {
     let (tex2, w, h) = {
         let wd = "Rust - 2048";
-        //font.set_style([sdl2_ttf::StyleBold]);
+        //font.set_style([ttf::StyleBold]);
         let (w, h) = try!(font.size_of_str(wd));
-        let text = try!(font.render_str_blended(wd, RGB(0x77, 0x6e, 0x65)));
+        let text = try!(font.render_str_blended(wd, FG_COLOR));
         (try!(ren.create_texture_from_surface(text)), w, h)
     };
-    ren.copy(tex2, None, Some(rect!(SCREEN_WIDTH / 2 - w / 2, 20, w, h)));
+    try!(ren.copy(tex2, None, Some(rect!(SCREEN_WIDTH / 2 - w / 2, 20, w, h))));
     Ok(())
 }
 
+// FIXME: tooooooo many type convertion
+fn draw_popup(ren: &render::Renderer, font: &ttf::Font, msg: &str) -> Result<(), ~str> {
+    let (tex, w, h) = {
+        //font.set_style([ttf::StyleBold]);
+        let (w, h) = try!(font.size_of_str(msg));
+        let text = try!(font.render_str_blended(msg, FG_COLOR));
+        (try!(ren.create_texture_from_surface(text)), w, h)
+    };
+    try!(ren.rounded_box((SCREEN_WIDTH / 2 - w / 2) as i16,
+                         (SCREEN_HEIGHT / 2 - h / 2) as i16,
+                         (SCREEN_WIDTH / 2 + w / 2) as i16,
+                         (SCREEN_HEIGHT / 2 + h / 2) as i16,
+                         5,
+                         BG_COLOR));
+    try!(ren.rounded_rectangle((SCREEN_WIDTH / 2 - w / 2) as i16,
+                               (SCREEN_HEIGHT / 2 - h / 2) as i16,
+                               (SCREEN_WIDTH / 2 + w / 2) as i16,
+                               (SCREEN_HEIGHT / 2 + h / 2) as i16,
+                               5,
+                               FG_COLOR));
+    try!(ren.copy(tex, None, Some(rect!(SCREEN_WIDTH / 2 - w / 2,
+                                        SCREEN_HEIGHT / 2 - h / 2,
+                                        w,
+                                        h))));
+    Ok(())
+}
+
+
 pub fn run() -> Result<(), ~str> {
-    let mut frames = 0;
     let win = try!(video::Window::new(
         "Rust - 2048", video::PosCentered, video::PosCentered, SCREEN_WIDTH, SCREEN_HEIGHT,
         [video::Shown]));
 
-    let ren = try!(sdl2::render::Renderer::from_window(
-        win, sdl2::render::DriverAuto, [sdl2::render::Accelerated]));
+    let ren = try!(render::Renderer::from_window(
+        win, render::DriverAuto, [render::Accelerated]));
 
     let mut fpsm = sdl2_gfx::framerate::FPSManager::new();
-    fpsm.set_framerate(50);
+    try!(fpsm.set_framerate(50));
 
-    let font = try!(sdl2_ttf::Font::from_file(&Path::new("./xiaonaipao.ttf"), 48));
+    let font = try!(ttf::Font::from_file(&Path::new("./xiaonaipao.ttf"), 48));
     let mut game = Game::new();
 
     let mut playing = false;
 
     'main : loop {
         'event : loop {
-            fpsm.framerate_delay();
-            ren.set_draw_color(BG_COLOR);
-            ren.clear();
-            // main drawing
-            draw_title(&*ren, &*font);
-            ren.string(0i16, 0i16, format!("frames: {}", frames), CHAR_COLOR);
+            fpsm.delay();
+            try!(ren.set_draw_color(BG_COLOR));
+            try!(ren.clear());
+            // == main drawing ==
+            try!(draw_title(&*ren, &*font));
+            try!(ren.string(0i16, 0i16, format!("frames: {}", fpsm.get_frame_count()), CHAR_COLOR));
 
-            ren.string(200, 90, format!("your score: {}", game.score), CHAR_COLOR);
+            try!(ren.string(200, 90, format!("your score: {}", game.score), CHAR_COLOR));
+
+            try!(game.draw_on(&*ren, &*font, (SCREEN_WIDTH / 2 - 400 / 2, 100, 400, 400)));
 
             if !playing {
-                ren.string(0, 20, "Press SPACE to start!", CHAR_COLOR);
+                try!(draw_popup(&*ren, &*font, "Press SPACE to start!"));
             }
-
-            game.draw_on(&*ren, &*font, (SCREEN_WIDTH / 2 - 400 / 2, 100, 400, 400));
-
-            // main drawing ends
+            // == main drawing ends ==
             ren.present();
-
-            frames += 1;
 
             match event::poll_event() {
                 event::QuitEvent(_) => break 'main,
@@ -370,10 +377,10 @@ pub fn run() -> Result<(), ~str> {
                 event::MouseButtonDownEvent(_, _, _, _, x, y) => {
                     println!("mouse btn down at ({},{})", x, y);
                 }
-                event::MouseMotionEvent(_, _, _, _, x, y, dx, dy) => {
-                         //println!("mouse btn move at ({},{}) d-> {} {}", x, y, dx, dy);
+                // event::MouseMotionEvent(_, _, _, _, x, y, dx, dy) => {
+                //          //println!("mouse btn move at ({},{}) d-> {} {}", x, y, dx, dy);
 
-                }
+                //}
                 _ => {}
             }
         }
