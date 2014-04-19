@@ -344,7 +344,7 @@ pub fn run() -> Result<(), ~str> {
                     game.add_random_tile();
                 }
                 event::KeyDownEvent(_, _, keycode::RightKey, _, _) if playing => {
-                    game.move((0, -0));
+                    game.move((0, 1));
                     game.add_random_tile();
                 }
                 event::KeyDownEvent(_, _, keycode::UpKey, _, _) if playing => {
