@@ -193,10 +193,10 @@ impl Game {
         false
     }
 
-    pub fn list_move(self) -> ~[int]
+    pub fn list_move(self) -> Vec<int>
     {
         let mut tmp: Game;
-        let mut ret: ~[int] = ~[];
+        let mut ret: Vec<int> = Vec::new();
 
         /* Tries to move the grid in each direction, and sees if there have been any changes */
         for i in range(0, 4)
@@ -213,9 +213,9 @@ impl Game {
         ret
     }
 
-    pub fn list_tile_empty(&mut self) -> ~[(int, int)]
+    pub fn list_tile_empty(&mut self) -> Vec<(int, int)>
     {
-        let mut ret: ~[(int, int)] = ~[];
+        let mut ret: Vec<(int, int)> = Vec::new();
 
         /* List the position of all empty tiles */
         for i in range(0, WIDTH)
@@ -240,7 +240,7 @@ impl Game {
         if tab.len() > 0
         {
             /* Chooses a random position and add the new tile */
-            let (a, b) = tab[random::<uint>()%tab.len()];
+            let &(a, b) = tab.get(random::<uint>()%tab.len());
             self.grid[a as uint][b as uint] = 2;
         }
     }
