@@ -174,15 +174,12 @@ pub fn run() -> Result<(), ~str> {
                 event::QuitEvent(_) => break 'main,
                 event::KeyDownEvent(_, _, keycode::LeftKey, _, _) if playing => {
                     gm.move(game::Left);
-                    //game.add_random_tile();
                 }
                 event::KeyDownEvent(_, _, keycode::RightKey, _, _) if playing => {
                     gm.move(game::Right);
-                    // game.add_random_tile();
                 }
                 event::KeyDownEvent(_, _, keycode::UpKey, _, _) if playing => {
                     gm.move(game::Up);
-                    //game.add_random_tile();
                 }
                 event::KeyDownEvent(_, _, keycode::DownKey, _, _) if playing => {
                     gm.move(game::Down);
@@ -195,8 +192,6 @@ pub fn run() -> Result<(), ~str> {
                             playing = true;
                             celebrating = false;
                             gm.setup();
-                            //game.add_random_tile();
-                            //game.add_random_tile();
                         }
                     }
 
@@ -204,10 +199,7 @@ pub fn run() -> Result<(), ~str> {
                 event::MouseButtonDownEvent(_, _, _, _, x, y) => {
                     println!("mouse btn down at ({},{})", x, y);
                 }
-                // event::MouseMotionEvent(_, _, _, _, x, y, dx, dy) => {
-                //          //println!("mouse btn move at ({},{}) d-> {} {}", x, y, dx, dy);
 
-                //}
                 _ => {}
             }
         }

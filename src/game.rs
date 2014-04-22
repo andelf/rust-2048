@@ -111,7 +111,7 @@ impl fmt::Show for Tile {
     }
 }
 
-// Layout for console
+// Layout for console debug
 //
 // +-----+-----+-----+-----+
 // |(0,0)|(0,1)|     |     |
