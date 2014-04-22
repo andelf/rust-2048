@@ -10,14 +10,14 @@ extern crate sdl2_ttf;
 extern crate sdl2_gfx;
 
 #[allow(dead_code)]
-mod game;
+mod ui;
 
 fn main() {
     sdl2::init([sdl2::InitVideo]);
     // sdl2_image::init([sdl2_image::InitPng, sdl2_image::InitJpg]);
     sdl2_ttf::init();
 
-    match game::run() {
+    match ui::run() {
         Ok(_) => (),
         Err(e) => fail!("Error while running game: {}", e),
     }

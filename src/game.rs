@@ -1,421 +1,431 @@
-use sdl2;
-use sdl2_gfx;
-use ttf = sdl2_ttf;
-use sdl2::video;
-use sdl2::render;
-use sdl2::{event, keycode};
-// for Renderer trait
-use sdl2_gfx::primitives::DrawRenderer;
-use sdl2::pixels::{Color, RGB, RGBA};
-use sdl2::rwops;
-use std::iter::range_step;
-use std::cmp::max;
-use rand::random;
-use sdl2_ttf::LoaderRWops;
+use rand;
+use std::iter::{DoubleEndedIterator, MutableDoubleEndedIterator};
+use std::rc::Rc;
+use std::fmt;
 
 
-static SCREEN_WIDTH : int = 800;
-static SCREEN_HEIGHT : int = 600;
+static SIZE  : uint = 4;
 
 
-// hadle the annoying Rect i32
-macro_rules! rect(
-    ($x:expr, $y:expr, $w:expr, $h:expr) => (
-        sdl2::rect::Rect::new($x as i32, $y as i32, $w as i32, $h as i32)
-    )
-)
-
-// colors
-static BG_COLOR: Color = RGB(0xee, 0xe4, 0xda);
-static FG_COLOR: Color = RGB(0x77, 0x6e, 0x65);
-static CHAR_COLOR: Color = RGB(0xee, 0x33, 0x66);
-static CONTAINER_COLOR: Color = RGBA(0x77, 0x6e, 0x65, 200);
-static CELL_COLORS: &'static [Color] = &'static [
-    RGBA(0xee, 0xe4, 0xda, 120), RGB(0xed, 0xe0, 0xc8), RGB(0xf2, 0xb1, 0x79),
-    RGB(0xf5, 0x95, 0x64), RGB(0xf6, 0x7c, 0x5f), RGB(0xf6, 0x5e, 0x3b),
-    RGB(0xed, 0xcf, 0x72), RGB(0xed, 0xcc, 0x61), RGB(0xed, 0xc8, 0x50),
-    RGB(0xed, 0xc5, 0x3f), RGB(0xed, 0xc2, 0x2e), RGB(0x3c, 0x3a, 0x32), ];
-
-// Font
-static TTF_FONT_RAW_BYTES: &'static [u8] = include_bin!("./res/OpenDyslexic-Regular.ttf");
-
-
-static WIDTH  : int = 4;
-static HEIGHT : int = 4;
-
-struct Game {
-    pub grid: [[int, ..WIDTH], ..HEIGHT],
-    pub score: int,
+#[deriving(Eq, Show)]
+pub enum Direction {
+    Up,
+    Right,
+    Down,
+    Left,
 }
 
-impl Game {
-    pub fn new() -> Game {
-        Game { grid: [[0, ..WIDTH], ..HEIGHT],
-               score: 0,
+impl Direction {
+    fn to_vector(self) -> (int, int) {
+        match self {
+            Up    => (0, -1),
+            Right => (1, 0),
+            Down  => (0, 1),
+            Left  => (-1, 0)
         }
     }
 
-    pub fn max_cell(&self) -> int {
-        let mut m = 0;
-        for i in range(0, HEIGHT as uint) {
-            for j in range(0, WIDTH as uint) {
-                m = max(m, self.grid[i][j]);
-            }
+    // Haskell succ/pred???
+    fn all_directions() -> ~[Direction] {
+        ~[Up, Right, Down, Left]
+    }
+
+}
+
+pub struct Traversal {
+    xs: ~[uint],
+    ys: ~[uint],
+
+    idx: uint,
+    max_idx: uint,
+    size: uint
+}
+
+impl Traversal {
+    pub fn new(size: uint, dir: Direction) -> Traversal {
+        let (x, y) = dir.to_vector();
+        let xs = if x == 1 {
+            range(0u, size).rev().collect::<~[uint]>()
+        } else {
+            range(0u, size).collect::<~[uint]>()
+        };
+        let ys = if y == 1 {
+            range(0u, size).rev().collect::<~[uint]>()
+        } else {
+            range(0u, size).collect::<~[uint]>()
+        };
+
+        Traversal { xs: xs, ys: ys,
+                    idx: 0, max_idx: size * size,
+                    size: size,
         }
-        m
-    }
-
-    pub fn reset(&mut self) {
-        *self = Game::new()
-    }
-
-    pub fn int_to_vec(dir: int) -> (int, int) /* x, y */
-    {
-        match dir
-        {
-            0 => (1, 0),    /* RIGHT */
-            1 => (-1, 0),   /* LEFT */
-            2 => (0, 1),    /* DOWN */
-            3 => (0, -1),   /* UP */
-            _ => (42, 42)   /* Wait what ERROR */
-        }
-    }
-
-    /* 0022 -> 1 | 0222 -> 2 | 2222 -> 3 */
-    pub fn get_length(self, vec: (int, int), i: int, j: int) -> int
-    {
-        let (x, y) = vec;
-        let mut c = 1;
-
-        while i+x*c >= 0 && j+y*c >= 0 && i+x*c < WIDTH && j+y*c < HEIGHT &&
-              self.grid[i as uint][j as uint] == self.grid[(i+x*c) as uint][(j+y*c) as uint]
-        {
-            c+=1;
-        }
-
-        c
-    }
-
-    pub fn move_global(&mut self, vec: (int, int)) /* Move without merge */
-    {
-        let (x, y) = vec;
-
-        /* Move enough times to move everything (soooo beautiful~) */
-        for _ in range(0, max(WIDTH, HEIGHT)/2)
-        {
-            /* WIDTH-1 to 0 if x<0, 0 to WIDTH-1 if x>=0 */
-            let mut w = if x < 0 {range_step(WIDTH-1, -1, -1)} else {range_step(0, WIDTH, 1)};
-            for i in w
-            {
-                /* HEIGHT-1 to 0 if x<0, 0 to HEIGHT-1 if x>=0 */
-                let mut h = if y < 0 {range_step(HEIGHT-1, -1, -1)} else {range_step(0, HEIGHT, 1)};
-                for j in h
-                {
-                    /* If the current tile is full and the next is empty : swap */
-                    if i+x >= 0 && j+y >= 0 && i+x < WIDTH && j+y < HEIGHT &&
-                       self.grid[i as uint][j as uint] != 0 && self.grid[(i+x) as uint][(j+y) as uint] == 0
-                    {
-                        let tmp = self.grid[(i+x) as uint][(j+y) as uint];
-                        self.grid[(i+x) as uint][(j+y) as uint] = self.grid[i as uint][j as uint];
-                        self.grid[i as uint][j as uint] = tmp;
-                    }
-                }
-            }
-        }
-    }
-
-   pub fn merge_seq(&mut self, vec: (int, int), i: int, j: int)
-    {
-        let l = self.get_length(vec, i, j) - 1;
-        let (x, y) = vec;
-
-        /* 0022 -> ok (min), 0002 -> lolnope */
-        if l >= 1
-        {
-            /* End of the sequence to the start+1 */
-            for k in range_step(l, 0, -2)
-            {
-                /* If both tiles are equals */
-                if self.grid[(i+x*k) as uint][(j+y*k) as uint] == self.grid[(i+x*(k-1)) as uint][(j+y*(k-1)) as uint]
-                {
-                    // self.merged_nb+=1;
-                }
-
-                self.grid[(i+x*k) as uint][(j+y*k) as uint] += self.grid[(i+x*(k-1)) as uint][(j+y*(k-1)) as uint];
-                self.score += self.grid[(i+x*k) as uint][(j+y*k) as uint];
-                self.grid[(i+x*(k-1)) as uint][(j+y*(k-1)) as uint] = 0;
-
-            }
-        }
-    }
-
-    pub fn merge(&mut self, vec: (int, int))
-    {
-        let (x, y) = vec;
-
-        /* WIDTH-1 to 0 if x<0, 0 to WIDTH-1 if x>=0 */
-        let mut w = if x >= 0 {range_step(WIDTH-1, -1, -1)} else {range_step(0, WIDTH, 1)};
-        for i in w
-        {
-            /* HEIGHT-1 to 0 if x<0, 0 to HEIGHT-1 if x>=0 */
-            let mut h = if y >= 0 {range_step(HEIGHT-1, -1, -1)} else {range_step(0, HEIGHT, 1)};
-            for j in h
-            {
-                if i+x >= 0 && j+y >= 0 && i+x < WIDTH && j+y < HEIGHT && self.grid[i as uint][j as uint] != 0
-                {
-                    self.merge_seq(vec, i, j);
-                }
-            }
-        }
-    }
-
-    pub fn move(&mut self, vec: (int, int))
-    {
-        // self.move_nb+=1;
-        self.move_global(vec);
-        self.merge(vec);
-        self.move_global(vec); /* Plug holes \o/ */
-    }
-
-    pub fn is_moved(g1: Game, g2: Game) -> bool
-    {
-        for i in range(0, WIDTH)
-        {
-            for j in range(0, HEIGHT)
-            {
-                if g1.grid[i as uint][j as uint] != g2.grid[i as uint][j as uint]
-                {
-                    return true;
-                }
-            }
-        }
-
-        false
-    }
-
-    pub fn list_move(self) -> Vec<int>
-    {
-        let mut tmp: Game;
-        let mut ret: Vec<int> = Vec::new();
-
-        /* Tries to move the grid in each direction, and sees if there have been any changes */
-        for i in range(0, 4)
-        {
-            tmp = self;
-            tmp.move(Game::int_to_vec(i));
-
-            if Game::is_moved(self, tmp) == true
-            {
-                ret.push(i);
-            }
-        }
-
-        ret
-    }
-
-    pub fn list_tile_empty(&mut self) -> Vec<(int, int)>
-    {
-        let mut ret: Vec<(int, int)> = Vec::new();
-
-        /* List the position of all empty tiles */
-        for i in range(0, WIDTH)
-        {
-            for j in range(0, HEIGHT)
-            {
-                if self.grid[i as uint][j as uint] == 0
-                {
-                    ret.push((i, j));
-                }
-            }
-        }
-
-        ret
-    }
-
-    pub fn add_random_tile(&mut self)
-    {
-        let tab = self.list_tile_empty();
-
-        /* If there is at least one empty tile */
-        if tab.len() > 0
-        {
-            /* Chooses a random position and add the new tile */
-            let &(a, b) = tab.get(random::<uint>()%tab.len());
-            self.grid[a as uint][b as uint] = 2;
-        }
-    }
-
-    pub fn draw_on(&self, ren: &render::Renderer, font: &ttf::Font,
-                   (x,y,w,h): (int,int,int,int)) -> Result<(), ~str> {
-        assert_eq!(w, h);
-        // BEST in 500x500
-        static CONTAINER_PADDING: int = 10;
-        let cell_width = (w - CONTAINER_PADDING * 5) / 4;
-        assert!(cell_width > 50); // Min width
-        try!(ren.box_(x as i16, y as i16, (x+w) as i16, (y+h) as i16, CONTAINER_COLOR));
-        for i in range(0, HEIGHT) {
-            for j in range(0, WIDTH) {
-                let val = self.grid[i as uint][j as uint];
-                let c = if val == 0 {
-                    0           // or will be +Infinity
-                } else {
-                    (val as f64).log2() as uint
-                };
-                let bx = (x + CONTAINER_PADDING * (j + 1) + cell_width * j) as i16;
-                let by = (y + CONTAINER_PADDING * (i + 1) + cell_width * i) as i16;
-                try!(ren.box_(bx, by, bx + cell_width as i16, by + cell_width as i16,
-                              CELL_COLORS[c]));
-                if val != 0 {
-                    let (tex, w, h) = {
-                        let wd = format!("{}", val);
-                        let (w, h) = try!(font.size_of_str(wd));
-                        let text = try!(font.render_str_blended(wd, FG_COLOR));
-                        (try!(ren.create_texture_from_surface(text)), w, h)
-                    };
-                    if h > w {
-                        try!(ren.copy(tex, None, Some(rect!(bx as int + cell_width / 2 - w/2, by as int + cell_width / 2 - h/2,
-                                                            w, h))));
-                    } else {
-                        try!(ren.copy(tex, None, Some(rect!(bx as int + cell_width / 2 - w/2, by as int + cell_width / 2 - h/2,
-                                                            w, h))));
-                    }
-                }
-            }
-        }
-        Ok(())
     }
 }
 
-
-
-fn draw_title(ren: &render::Renderer, font: &ttf::Font) -> Result<(), ~str> {
-    let (tex2, w, h) = {
-        let wd = "Rust - 2048";
-        //font.set_style([ttf::StyleBold]);
-        let (w, h) = try!(font.size_of_str(wd));
-        let text = try!(font.render_str_blended(wd, FG_COLOR));
-        (try!(ren.create_texture_from_surface(text)), w, h)
-    };
-    try!(ren.copy(tex2, None, Some(rect!(SCREEN_WIDTH / 2 - w / 2, 20, w, h))));
-    Ok(())
+impl Iterator<(uint, uint)> for Traversal {
+    fn next(&mut self) -> Option<(uint, uint)> {
+        if self.idx == self.max_idx {
+            None
+        } else {
+            let ret = (self.xs[self.idx / self.size],
+                       self.ys[self.idx % self.size]);
+            self.idx += 1;
+            Some(ret)
+        }
+    }
 }
 
-// FIXME: tooooooo many type convertion
-fn draw_popup(ren: &render::Renderer, font: &ttf::Font, msg: &str) -> Result<(), ~str> {
-    let (tex, w, h) = {
-        //font.set_style([ttf::StyleBold]);
-        let (w, h) = try!(font.size_of_str(msg));
-        let text = try!(font.render_str_blended(msg, FG_COLOR));
-        (try!(ren.create_texture_from_surface(text)), w, h)
-    };
-    try!(ren.rounded_box((SCREEN_WIDTH / 2 - w / 2) as i16,
-                         (SCREEN_HEIGHT / 2 - h / 2) as i16,
-                         (SCREEN_WIDTH / 2 + w / 2) as i16,
-                         (SCREEN_HEIGHT / 2 + h / 2) as i16,
-                         5,
-                         BG_COLOR));
-    try!(ren.rounded_rectangle((SCREEN_WIDTH / 2 - w / 2) as i16,
-                               (SCREEN_HEIGHT / 2 - h / 2) as i16,
-                               (SCREEN_WIDTH / 2 + w / 2) as i16,
-                               (SCREEN_HEIGHT / 2 + h / 2) as i16,
-                               5,
-                               FG_COLOR));
-    try!(ren.copy(tex, None, Some(rect!(SCREEN_WIDTH / 2 - w / 2,
-                                        SCREEN_HEIGHT / 2 - h / 2,
-                                        w,
-                                        h))));
-    Ok(())
+#[deriving(Eq, Clone)]
+pub struct Tile {
+    pub x: uint,
+    pub y: uint,
+    pub value: int,
+
+    pub prev_pos: Option<(uint, uint)>,
+    pub merged_from: Option<((uint,uint), (uint, uint))>
 }
 
+impl Tile {
+    pub fn new((x, y): (uint, uint), value: int) -> Tile {
+        Tile { x: x, y: y, value: value,
+               prev_pos: None, merged_from: None }
+    }
 
-pub fn run() -> Result<(), ~str> {
-    let win = try!(video::Window::new(
-        "Rust - 2048", video::PosCentered, video::PosCentered, SCREEN_WIDTH, SCREEN_HEIGHT,
-        [video::Shown]));
-    let ren = try!(render::Renderer::from_window(
-        win, render::DriverAuto, [render::Accelerated]));
+    pub fn save_position(&mut self) {
+        self.prev_pos = Some((self.x, self.y));
+    }
 
-    let mut fpsm = sdl2_gfx::framerate::FPSManager::new();
-    try!(fpsm.set_framerate(50));
+    pub fn update_position(&mut self, (x, y): (uint, uint)) {
+        self.x = x;
+        self.y = y
+    }
+
+    pub fn pos(&self) -> (uint, uint) {
+        (self.x, self.y)
+    }
+
+}
+
+impl fmt::Show for Tile {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.buf.write_str(format!("[{:4d}]", self.value))
+    }
+}
+
+// Layout for console
+//
+// +-----+-----+-----+-----+
+// |(0,0)|(0,1)|     |     |
+// +-----+-----+-----+-----+
+// |(1,0)|     |     |     |
+// +-----+-----+-----+-----+
+// |     |     |     |     |
+// +-----+-----+-----+-----+
+// |     |     |     |(3,3)|
+// +-----+-----+-----+-----+
+//
+//
 
 
-    let font : ~ttf::Font = {
-        let raw = try!(rwops::RWops::from_bytes(TTF_FONT_RAW_BYTES));
-        // or try!(ttf::Font::from_file(&Path::new("./OpenDyslexic-Regular.ttf"), 48));
-        try!(raw.load_font(48))
-    };
-    let mut game = Game::new();
+#[deriving(Eq, Show, Clone)]
+pub struct Grid {
+    pub size: uint,
+    pub cells: Vec<Vec<Option<Tile>>>
+}
 
-    let mut playing = false;
-    let mut celebrating = false;
+impl Grid {
+    pub fn new(size: uint) -> Grid {
+        Grid {
+            size: size,
+            cells: Vec::from_elem(size,
+                                  Vec::from_elem(size, None))
+        }
+    }
 
-    'main : loop {
-        'event : loop {
-            fpsm.delay();
-            try!(ren.set_draw_color(BG_COLOR));
-            try!(ren.clear());
-            // == main drawing ==
-            try!(draw_title(&*ren, &*font));
-            try!(ren.string(0i16, 0i16, format!("frames: {}", fpsm.get_frame_count()), CHAR_COLOR));
+    pub fn random_available_cell(&self) -> Option<(uint, uint)> {
+        let cells = self.available_cells();
 
-            try!(ren.string(200, 90, format!("your score: {}", game.score), CHAR_COLOR));
-
-            try!(game.draw_on(&*ren, &*font, (SCREEN_WIDTH / 2 - 400 / 2, 100, 400, 400)));
-
-            if celebrating || (playing && game.list_move().len() == 0) { // can't move
-                try!(draw_popup(&*ren, &*font, format!("Score: {}! Max Cell: {}", game.score, game.max_cell())));
-                playing = false;
-                celebrating = true;
-
-            } else if !playing && !celebrating {
-                try!(draw_popup(&*ren, &*font, "Press SPACE to start!"));
+        match cells.len() {
+            0 => None,
+            n => {
+                Some(*cells.get(rand::random::<uint>() % n))
             }
+        }
+    }
 
-            // == main drawing ends ==
-            ren.present();
+    pub fn available_cells(&self) -> Vec<(uint, uint)> {
+        let mut cells = Vec::new();
 
-            match event::poll_event() {
-                event::QuitEvent(_) => break 'main,
-                event::KeyDownEvent(_, _, keycode::LeftKey, _, _) if playing => {
-                    game.move((0, -1));
-                    game.add_random_tile();
+        self.each_cell(|x, y, tile| {
+            if tile.is_none() {
+                cells.push((x,y))
+            }
+        });
+        cells
+    }
+
+    pub fn each_cell(&self, callback: |uint, uint, Option<&Tile>|) {
+        for x in range(0u, self.size) {
+            for y in range(0u, self.size) {
+                callback(x, y, self.cells.get(x).get(y).as_ref())
+            }
+        }
+    }
+
+    pub fn each_mut_cell(&mut self, callback: |uint, uint, &mut Option<Tile>|) {
+        for x in range(0u, self.size) {
+            for y in range(0u, self.size) {
+                callback(x, y, self.cells.get_mut(x).get_mut(y))
+            }
+        }
+    }
+
+
+    pub fn cells_available(&self) -> bool {
+        self.available_cells().len() != 0
+    }
+
+    pub fn cell_available(&self, (x, y): (uint, uint)) -> bool {
+        self.cells.get(x).get(y).is_none()
+    }
+
+    pub fn cell_occupied(&self, (x, y): (uint, uint)) -> bool {
+        self.cells.get(x).get(y).is_some()
+    }
+
+    pub fn insert_tile(&mut self, tile: Tile) {
+        *self.cells.get_mut(tile.x).get_mut(tile.y) = Some(tile);
+    }
+
+    pub fn remove_tile(&mut self, tile: Tile) {
+        println!("remove ({}, {})", tile.x, tile.y);
+        *self.cells.get_mut(tile.x).get_mut(tile.y) = None;
+    }
+
+    pub fn within_bounds(&self, (x, y): (uint, uint)) -> bool {
+        x < self.size && y < self.size
+    }
+
+    pub fn cell_content(&self, (x, y): (uint, uint)) -> Option<Tile> {
+        if self.within_bounds((x, y)) {
+            *self.cells.get(x).get(y)
+        } else {
+            None
+        }
+    }
+
+    fn debug_print(&self) {
+        for col in self.cells.iter() {
+            for cell in col.iter() {
+                match *cell {
+                    Some(t) => print!("{}\t", t),
+                    None    => print!("[    ]\t"),
                 }
-                event::KeyDownEvent(_, _, keycode::RightKey, _, _) if playing => {
-                    game.move((0, 1));
-                    game.add_random_tile();
-                }
-                event::KeyDownEvent(_, _, keycode::UpKey, _, _) if playing => {
-                    game.move((-1, 0));
-                    game.add_random_tile();
-                }
-                event::KeyDownEvent(_, _, keycode::DownKey, _, _) if playing => {
-                    game.move((1, 0));
-                    game.add_random_tile();
-                }
-                event::KeyDownEvent(_, _, key, _, _) => {
-                    if key == keycode::EscapeKey {
-                        break 'main
-                    } else if key == keycode::SpaceKey {
-                        if !playing {
-                            playing = true;
-                            celebrating = false;
-                            game.reset();
-                            game.add_random_tile();
-                            game.add_random_tile();
+            }
+            println!("");
+        }
+    }
+
+}
+
+#[deriving(Show)]
+pub struct GameManager {
+    pub size: uint,
+    pub start_tiles: uint,
+
+    pub grid: Grid,
+    pub score: uint,
+    pub playing: bool
+}
+
+impl GameManager {
+    pub fn new(size: uint) -> GameManager {
+        GameManager { size: size,
+                      start_tiles: 2,
+                      grid: Grid::new(size),
+                      score: 0,
+                      playing: false }
+    }
+
+    pub fn setup(&mut self) {
+        self.playing = true;
+
+        self.add_start_tiles();
+    }
+
+    pub fn add_random_tile(&mut self) {
+        if self.grid.cells_available() {
+            let value = if rand::random::<uint>() % 10 < 9 { 2 } else { 4 };
+            let tile = Tile::new(self.grid.random_available_cell().unwrap(), value);
+
+            self.grid.insert_tile(tile);
+        }
+    }
+
+    fn add_start_tiles(&mut self) {
+        for _ in range(0, self.start_tiles) {
+            self.add_random_tile();
+        }
+    }
+
+    pub fn prepare_tiles(&mut self) {
+        self.grid.each_mut_cell(|_x, _y, tile| {
+            if tile.is_some() {
+                let mut t = tile.unwrap().clone();
+                t.merged_from = None;
+                t.save_position();
+                *tile = Some(t);
+            }
+        })
+    }
+
+    pub fn move_tile(&mut self, tile: Tile, (x, y): (uint, uint)) {
+        println!("move {} to {}", tile.pos(), (x,y));
+        let mut tile = tile;
+        *self.grid.cells.get_mut(tile.x).get_mut(tile.y) = None;
+        tile.update_position((x, y));
+        //*self.grid.cells.get_mut(tile.x).get_mut(tile.y) = None;
+        let pos = self.grid.cells.get_mut(x).get_mut(y);
+        *pos = Some(tile);
+        //(*pos).unwrap().update_position((x, y));
+    }
+
+    pub fn move(&mut self, dir: Direction) -> bool {
+        let mut moved = false;
+
+        self.prepare_tiles();
+        for (x, y) in self.build_traversal(dir) {
+            let tile_opt = self.grid.cell_content((x, y));
+
+            match tile_opt {
+                None => (),
+                Some(mut tile) => {
+                    let (farthest_pos, next_pos) = self.find_farthest_position((x,y), dir.to_vector());
+                    //println!("debug 1 ({}, {}), {:}", x, y, (farthest_pos, next_pos));
+                    //println!("debug 3 {}{} ",tile.pos(), tile);
+                    let next_opt = self.grid.cell_content(next_pos);
+                    // println!("next => {}", next_opt);
+                    match next_opt {
+                        Some(next) if next.value == tile.value && tile.merged_from.is_none() => {
+                            let mut merged = Tile::new(next_pos, tile.value * 2);
+                            merged.merged_from = Some((tile.pos(), next.pos()));
+
+                            self.grid.insert_tile(merged);
+                            //println!("debug 2: remove {:?}", tile);
+                            self.grid.remove_tile(tile);
+
+                            tile.update_position(next_pos);
+
+                            self.score += merged.value as uint;
+
+                            // The mighty 2048 tile
+                        }
+                        _ => {
+                            if tile.pos() != farthest_pos {
+                                self.move_tile(tile, farthest_pos);
+                            }
                         }
                     }
 
+                    if tile.pos() == (x, y) {
+                        moved = true;
+                    }
                 }
-                event::MouseButtonDownEvent(_, _, _, _, x, y) => {
-                    println!("mouse btn down at ({},{})", x, y);
-                }
-                // event::MouseMotionEvent(_, _, _, _, x, y, dx, dy) => {
-                //          //println!("mouse btn move at ({},{}) d-> {} {}", x, y, dx, dy);
-
-                //}
-                _ => {}
             }
         }
+
+        if moved {
+            // xxx moves_av
+
+            println!("moved some cell!");
+            self.add_random_tile();
+        }
+
+        moved
     }
-    Ok(())
+
+    pub fn moves_available(&self) -> bool {
+        self.grid.cells_available() || self.tile_matches_available()
+    }
+
+    // visit order
+    fn build_traversal(&self, dir: Direction) -> Traversal {
+        Traversal::new(self.size, dir)
+    }
+
+    fn find_farthest_position(&self, (x, y): (uint, uint), (dx, dy): (int, int)) -> ((uint, uint), (uint, uint)) {
+        let (mut prev_x, mut prev_y) = (x as int, y as int);
+        let (mut next_x, mut next_y) = (prev_x + dx, prev_y + dy);
+
+        while self.grid.within_bounds((next_x as uint, next_y as uint)) &&
+              self.grid.cell_available((next_x as uint, next_y as uint)) {
+                  prev_x = next_x;
+                  prev_y = next_y;
+                  next_x = prev_x + dx;
+                  next_y =  prev_y + dy;
+        }
+        // (farthest, next)
+        ((prev_x as uint, prev_y as uint),
+         (next_x as uint, next_y as uint))
+    }
+
+    fn tile_matches_available(&self) -> bool {
+        for x in range(0u, self.size) {
+            for y in range(0u, self.size) {
+                match self.grid.cell_content((x,y)) {
+                    Some(tile) => {
+                        for dir in Direction::all_directions().iter() {
+                            let (dx, dy) = dir.to_vector();
+                            let nx = (x as int + dx) as uint;
+                            let ny = (y as int + dy) as uint;
+                            match self.grid.cell_content((nx, ny)) {
+                                Some(other) if other.value == tile.value => {
+                                    return true;
+                                }
+                                _ => ()
+                            }
+                        }
+
+                    }
+                    _ => ()
+                }
+
+            }
+        }
+        false
+    }
+
+}
+
+fn main() {
+    let mut gm = GameManager::new(SIZE);
+    gm.setup();
+    println!("DEBUG: gm-> {}", gm);
+    // gm.add_start_tiles();
+    println!("DEBUG: gm-> {}", gm);
+    gm.add_random_tile();
+    gm.grid.debug_print();
+    //gm.move(Up);                // Left
+    //gm.move(Down);              // Right
+    //gm.move(Left);              // Up
+    //gm.move(Right);             // Down
+    gm.move(Up);
+    println!("===========");
+    gm.grid.debug_print();
+/*    gm.add_random_tile();
+    gm.grid.debug_print();
+    gm.add_random_tile();
+    gm.grid.debug_print();
+    gm.add_random_tile();
+    println!("===========");
+
+    gm.move(Down);
+    gm.grid.debug_print();
+    println!("=========== Up");
+    gm.move(Up);
+    gm.grid.debug_print();
+    let ret : ~[(uint, uint)]  =  gm.build_traversal(Up).collect::<~[(uint,uint)]>();
+    println!("traversal => {}", ret);
+*/
+    //println!("build tranv = {}", gm.build_traversals(Down).collect::<Vec<(uint,uint)>>());
 }
