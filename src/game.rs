@@ -82,7 +82,7 @@ impl Game {
     }
 
     /* 0022 -> 1 | 0222 -> 2 | 2222 -> 3 */
-    pub fn get_lenght(self, vec: (int, int), i: int, j: int) -> int
+    pub fn get_length(self, vec: (int, int), i: int, j: int) -> int
     {
         let (x, y) = vec;
         let mut c = 1;
@@ -126,7 +126,7 @@ impl Game {
 
    pub fn merge_seq(&mut self, vec: (int, int), i: int, j: int)
     {
-        let l = self.get_lenght(vec, i, j) - 1;
+        let l = self.get_length(vec, i, j) - 1;
         let (x, y) = vec;
 
         /* 0022 -> ok (min), 0002 -> lolnope */
