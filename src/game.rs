@@ -300,24 +300,19 @@ impl GameManager {
                 None => (),
                 Some(mut tile) => {
                     let (farthest_pos, next_pos) = self.find_farthest_position((x,y), dir.to_vector());
-                    //println!("debug 1 ({}, {}), {:}", x, y, (farthest_pos, next_pos));
-                    //println!("debug 3 {}{} ",tile.pos(), tile);
                     let next_opt = self.grid.cell_content(next_pos);
-                    // println!("next => {}", next_opt);
                     match next_opt {
-                        Some(next) if next.value == tile.value && tile.merged_from.is_none() => {
+                        Some(next) if next.value == tile.value && next.merged_from.is_none() => {
                             let mut merged = Tile::new(next_pos, tile.value * 2);
                             println!("{}, {} merged to {}", tile.pos(), next_pos, next_pos);
                             merged.merged_from = Some((tile.pos(), next.pos()));
 
                             self.grid.insert_tile(merged);
-                            //println!("debug 2: remove {:?}", tile);
                             self.grid.remove_tile(tile);
 
                             tile.update_position(next_pos);
 
                             self.score += merged.value as uint;
-
                             // The mighty 2048 tile
                             moved = true;
                         }
@@ -334,10 +329,8 @@ impl GameManager {
 
         if moved {
             // xxx moves_av
-
-            println!("moved some cell!");
+            println!("some cell moved, add new one!");
             self.add_random_tile();
-            self.grid.debug_print();
         }
 
         moved
@@ -394,37 +387,4 @@ impl GameManager {
         false
     }
 
-}
-
-fn main() {
-    let mut gm = GameManager::new(SIZE);
-    gm.setup();
-    println!("DEBUG: gm-> {}", gm);
-    // gm.add_start_tiles();
-    println!("DEBUG: gm-> {}", gm);
-    gm.add_random_tile();
-    gm.grid.debug_print();
-    //gm.move(Up);                // Left
-    //gm.move(Down);              // Right
-    //gm.move(Left);              // Up
-    //gm.move(Right);             // Down
-    gm.move(Up);
-    println!("===========");
-    gm.grid.debug_print();
-/*    gm.add_random_tile();
-    gm.grid.debug_print();
-    gm.add_random_tile();
-    gm.grid.debug_print();
-    gm.add_random_tile();
-    println!("===========");
-
-    gm.move(Down);
-    gm.grid.debug_print();
-    println!("=========== Up");
-    gm.move(Up);
-    gm.grid.debug_print();
-    let ret : ~[(uint, uint)]  =  gm.build_traversal(Up).collect::<~[(uint,uint)]>();
-    println!("traversal => {}", ret);
-*/
-    //println!("build tranv = {}", gm.build_traversals(Down).collect::<Vec<(uint,uint)>>());
 }
