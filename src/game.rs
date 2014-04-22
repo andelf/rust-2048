@@ -256,7 +256,7 @@ impl GameManager {
         if self.grid.cells_available() {
             let value = if rand::random::<uint>() % 10 < 9 { 2 } else { 4 };
             let tile = Tile::new(self.grid.random_available_cell().unwrap(), value);
-
+            println!("add new {}", tile.pos());
             self.grid.insert_tile(tile);
         }
     }
@@ -307,6 +307,7 @@ impl GameManager {
                     match next_opt {
                         Some(next) if next.value == tile.value && tile.merged_from.is_none() => {
                             let mut merged = Tile::new(next_pos, tile.value * 2);
+                            println!("{}, {} merged to {}", tile.pos(), next_pos, next_pos);
                             merged.merged_from = Some((tile.pos(), next.pos()));
 
                             self.grid.insert_tile(merged);
@@ -336,6 +337,7 @@ impl GameManager {
 
             println!("moved some cell!");
             self.add_random_tile();
+            self.grid.debug_print();
         }
 
         moved
