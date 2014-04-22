@@ -1,6 +1,5 @@
 use rand;
-use std::iter::{DoubleEndedIterator, MutableDoubleEndedIterator};
-use std::rc::Rc;
+use std::iter::DoubleEndedIterator;
 use std::fmt;
 
 
@@ -319,16 +318,14 @@ impl GameManager {
                             self.score += merged.value as uint;
 
                             // The mighty 2048 tile
+                            moved = true;
                         }
                         _ => {
                             if tile.pos() != farthest_pos {
                                 self.move_tile(tile, farthest_pos);
+                                moved = true;
                             }
                         }
-                    }
-
-                    if tile.pos() == (x, y) {
-                        moved = true;
                     }
                 }
             }

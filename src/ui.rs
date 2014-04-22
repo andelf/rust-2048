@@ -8,9 +8,6 @@ use sdl2::{event, keycode};
 use sdl2_gfx::primitives::DrawRenderer;
 use sdl2::pixels::{Color, RGB, RGBA};
 use sdl2::rwops;
-use std::iter::range_step;
-use std::cmp::max;
-use rand::random;
 use sdl2_ttf::LoaderRWops;
 
 
