@@ -1,5 +1,4 @@
 use rand;
-use std::iter::DoubleEndedIterator;
 use std::fmt;
 
 

@@ -39,6 +39,7 @@ static TTF_FONT_RAW_BYTES: &'static [u8] = include_bin!("./res/OpenDyslexic-Regu
 
 static SIZE: uint = 6;
 
+#[allow(uppercase_variables, unused_must_use)]
 fn draw_game(gm: &mut game::GameManager, ren: &render::Renderer, font: &ttf::Font,
              (x,y,w,h): (int,int,int,int)) -> Result<(), ~str> {
     assert_eq!(w, h);
