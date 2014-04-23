@@ -3,9 +3,6 @@ use std::iter::DoubleEndedIterator;
 use std::fmt;
 
 
-static SIZE  : uint = 4;
-
-
 #[deriving(Eq, Show)]
 pub enum Direction {
     Up,
@@ -43,18 +40,15 @@ pub struct Traversal {
 impl Traversal {
     pub fn new(size: uint, dir: Direction) -> Traversal {
         let (x, y) = dir.to_vector();
-        let xs = if x == 1 {
-            range(0u, size).rev().collect::<~[uint]>()
-        } else {
-            range(0u, size).collect::<~[uint]>()
-        };
-        let ys = if y == 1 {
-            range(0u, size).rev().collect::<~[uint]>()
-        } else {
-            range(0u, size).collect::<~[uint]>()
-        };
-
-        Traversal { xs: xs, ys: ys,
+        let mut xs = range(0u, size).collect::<Vec<uint>>();
+        let mut ys = range(0u, size).collect::<Vec<uint>>();
+        if x == 1 {
+            xs.reverse()
+        }
+        if y == 1 {
+            ys.reverse()
+        }
+        Traversal { xs: xs.as_slice().into_owned(), ys: ys.as_slice().into_owned(),
                     idx: 0, max_idx: size * size,
                     size: size,
         }
@@ -256,7 +250,7 @@ impl GameManager {
         if self.grid.cells_available() {
             let value = if rand::random::<uint>() % 10 < 9 { 2 } else { 4 };
             let tile = Tile::new(self.grid.random_available_cell().unwrap(), value);
-            println!("add new {}", tile.pos());
+            println!("add new at {}, val = {}", tile.pos(), value);
             self.grid.insert_tile(tile);
         }
     }
@@ -295,9 +289,7 @@ impl GameManager {
         self.prepare_tiles();
         for (x, y) in self.build_traversal(dir) {
             let tile_opt = self.grid.cell_content((x, y));
-
             match tile_opt {
-                None => (),
                 Some(mut tile) => {
                     let (farthest_pos, next_pos) = self.find_farthest_position((x,y), dir.to_vector());
                     let next_opt = self.grid.cell_content(next_pos);
@@ -324,6 +316,7 @@ impl GameManager {
                         }
                     }
                 }
+                _ => ()
             }
         }
 

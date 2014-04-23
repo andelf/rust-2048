@@ -37,15 +37,15 @@ static CELL_COLORS: &'static [Color] = &'static [
 // Font
 static TTF_FONT_RAW_BYTES: &'static [u8] = include_bin!("./res/OpenDyslexic-Regular.ttf");
 
-static SIZE: uint = 4;
+static SIZE: uint = 6;
 
 fn draw_game(gm: &mut game::GameManager, ren: &render::Renderer, font: &ttf::Font,
              (x,y,w,h): (int,int,int,int)) -> Result<(), ~str> {
     assert_eq!(w, h);
     // BEST in 500x500
-    static CONTAINER_PADDING: int = 10;
-    let cell_width = (w - CONTAINER_PADDING * 5) / 4;
-    assert!(cell_width > 50); // Min width
+    static CONTAINER_PADDING: int = 50 / (SIZE as int + 1);
+    let CELL_WIDTH = (w - CONTAINER_PADDING * (SIZE as int + 1)) / SIZE as int ;
+    assert!(CELL_WIDTH > 50); // Min width
     try!(ren.box_(x as i16, y as i16, (x+w) as i16, (y+h) as i16, CONTAINER_COLOR));
     gm.grid.each_cell(|j, i, tile_opt| {
         let i = i as int;
@@ -59,23 +59,27 @@ fn draw_game(gm: &mut game::GameManager, ren: &render::Renderer, font: &ttf::Fon
         } else {
             (val as f64).log2() as uint
         };
-        let bx = (x + CONTAINER_PADDING * (j + 1) + cell_width * j) as i16;
-        let by = (y + CONTAINER_PADDING * (i + 1) + cell_width * i) as i16;
-        ren.box_(bx, by, bx + cell_width as i16, by + cell_width as i16, CELL_COLORS[c]);
-        ren.string(bx, by, format!("({}, {})", j, i), CHAR_COLOR);
+        let bx = (x + CONTAINER_PADDING * (j + 1) + CELL_WIDTH * j) as i16;
+        let by = (y + CONTAINER_PADDING * (i + 1) + CELL_WIDTH * i) as i16;
+        ren.box_(bx, by, bx + CELL_WIDTH as i16, by + CELL_WIDTH as i16, CELL_COLORS[c]);
+        // ren.string(bx, by, format!("({}, {})", j, i), CHAR_COLOR); // DEBUG
         if val != 0 {
-            let (tex, w, h) = {
+            let (tex, tw, th) = {
                 let wd = format!("{}", val);
                 let (w, h) = font.size_of_str(wd).ok().expect("size of str");
                 let text = font.render_str_blended(wd, FG_COLOR).ok().expect("renderred surface");
                 (ren.create_texture_from_surface(text).ok().expect("create texture"), w, h)
             };
-            if h > w {
-                ren.copy(tex, None, Some(rect!(bx as int + cell_width / 2 - w/2, by as int + cell_width / 2 - h/2,
-                                                    w, h)));
+            if tw > CELL_WIDTH {
+                let ratio = CELL_WIDTH as f64 / tw as f64;
+                let tw = (tw as f64 * ratio) as int;
+                let th = (th as f64 * ratio) as int;
+
+                ren.copy(tex, None, Some(rect!(bx as int + CELL_WIDTH / 2 - tw/2, by as int + CELL_WIDTH / 2 - th/2,
+                                               tw, th)));
             } else {
-                ren.copy(tex, None, Some(rect!(bx as int + cell_width / 2 - w/2, by as int + cell_width / 2 - h/2,
-                                                    w, h)));
+                ren.copy(tex, None, Some(rect!(bx as int + CELL_WIDTH / 2 - tw/2, by as int + CELL_WIDTH / 2 - th/2,
+                                               tw, th)));
             }
         }
     });
