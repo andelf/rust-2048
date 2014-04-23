@@ -33,6 +33,7 @@ static CELL_COLORS: &'static [Color] = &'static [
     RGB(0xf5, 0x95, 0x64), RGB(0xf6, 0x7c, 0x5f), RGB(0xf6, 0x5e, 0x3b),
     RGB(0xed, 0xcf, 0x72), RGB(0xed, 0xcc, 0x61), RGB(0xed, 0xc8, 0x50),
     RGB(0xed, 0xc5, 0x3f), RGB(0xed, 0xc2, 0x2e), RGB(0x3c, 0x3a, 0x32), ];
+static SUPER_CELL_COLOR: Color = RGB(0xcc, 0x33, 0xff);
 
 // Font
 static TTF_FONT_RAW_BYTES: &'static [u8] = include_bin!("./res/OpenDyslexic-Regular.ttf");
@@ -59,9 +60,10 @@ fn draw_game(gm: &mut game::GameManager, ren: &render::Renderer, font: &ttf::Fon
         } else {
             (val as f64).log2() as uint
         };
+        let color = CELL_COLORS.get(c).map(|&co| co).unwrap_or(SUPER_CELL_COLOR);
         let bx = (x + CONTAINER_PADDING * (j + 1) + CELL_WIDTH * j) as i16;
         let by = (y + CONTAINER_PADDING * (i + 1) + CELL_WIDTH * i) as i16;
-        ren.box_(bx, by, bx + CELL_WIDTH as i16, by + CELL_WIDTH as i16, CELL_COLORS[c]);
+        ren.box_(bx, by, bx + CELL_WIDTH as i16, by + CELL_WIDTH as i16, color);
         // ren.string(bx, by, format!("({}, {})", j, i), CHAR_COLOR); // DEBUG
         if val != 0 {
             let (tex, tw, th) = {
