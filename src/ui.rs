@@ -37,14 +37,13 @@ static CELL_COLORS: &'static [Color] = &'static [
 // Font
 static TTF_FONT_RAW_BYTES: &'static [u8] = include_bin!("./res/OpenDyslexic-Regular.ttf");
 
-static SIZE: uint = 6;
-
 #[allow(uppercase_variables, unused_must_use)]
 fn draw_game(gm: &mut game::GameManager, ren: &render::Renderer, font: &ttf::Font,
              (x,y,w,h): (int,int,int,int)) -> Result<(), ~str> {
     assert_eq!(w, h);
     // BEST in 500x500
-    static CONTAINER_PADDING: int = 50 / (SIZE as int + 1);
+    let SIZE = gm.size;
+    let CONTAINER_PADDING: int = 50 / (SIZE as int + 1);
     let CELL_WIDTH = (w - CONTAINER_PADDING * (SIZE as int + 1)) / SIZE as int ;
     assert!(CELL_WIDTH > 50); // Min width
     try!(ren.box_(x as i16, y as i16, (x+w) as i16, (y+h) as i16, CONTAINER_COLOR));
@@ -129,7 +128,7 @@ fn draw_popup(ren: &render::Renderer, font: &ttf::Font, msg: &str) -> Result<(),
 }
 
 
-pub fn run() -> Result<(), ~str> {
+pub fn run(game_size: uint) -> Result<(), ~str> {
     let win = try!(video::Window::new(
         "Rust - 2048", video::PosCentered, video::PosCentered, SCREEN_WIDTH, SCREEN_HEIGHT,
         [video::Shown]));
@@ -145,7 +144,7 @@ pub fn run() -> Result<(), ~str> {
         // or try!(ttf::Font::from_file(&Path::new("./OpenDyslexic-Regular.ttf"), 48));
         try!(raw.load_font(48))
     };
-    let mut gm = game::GameManager::new(SIZE);
+    let mut gm = game::GameManager::new(game_size);
 
     let mut playing = false;
     let mut celebrating = false;
