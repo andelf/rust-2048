@@ -43,9 +43,9 @@ fn draw_game(gm: &mut game::GameManager, ren: &render::Renderer, font: &ttf::Fon
     assert_eq!(w, h);
     // BEST in 500x500
     let SIZE = gm.size;
-    let CONTAINER_PADDING: int = 50 / (SIZE as int + 1);
+    let CONTAINER_PADDING: int = 50  / (SIZE as int + 1);
     let CELL_WIDTH = (w - CONTAINER_PADDING * (SIZE as int + 1)) / SIZE as int ;
-    assert!(CELL_WIDTH > 50); // Min width
+    assert!(CELL_WIDTH > 40); // Min width
     try!(ren.box_(x as i16, y as i16, (x+w) as i16, (y+h) as i16, CONTAINER_COLOR));
     gm.grid.each_cell(|j, i, tile_opt| {
         let i = i as int;
@@ -70,17 +70,18 @@ fn draw_game(gm: &mut game::GameManager, ren: &render::Renderer, font: &ttf::Fon
                 let text = font.render_str_blended(wd, FG_COLOR).ok().expect("renderred surface");
                 (ren.create_texture_from_surface(text).ok().expect("create texture"), w, h)
             };
-            if tw > CELL_WIDTH {
-                let ratio = CELL_WIDTH as f64 / tw as f64;
-                let tw = (tw as f64 * ratio) as int;
-                let th = (th as f64 * ratio) as int;
 
-                ren.copy(tex, None, Some(rect!(bx as int + CELL_WIDTH / 2 - tw/2, by as int + CELL_WIDTH / 2 - th/2,
+            let ratio = if tw > CELL_WIDTH {
+                CELL_WIDTH as f64 / tw as f64
+            } else if th > CELL_WIDTH {
+                CELL_WIDTH as f64 / th as f64
+            } else { 1.0 };
+
+            let tw = (tw as f64 * ratio) as int;
+            let th = (th as f64 * ratio) as int;
+
+            ren.copy(tex, None, Some(rect!(bx as int + CELL_WIDTH / 2 - tw/2, by as int + CELL_WIDTH / 2 - th/2,
                                                tw, th)));
-            } else {
-                ren.copy(tex, None, Some(rect!(bx as int + CELL_WIDTH / 2 - tw/2, by as int + CELL_WIDTH / 2 - th/2,
-                                               tw, th)));
-            }
         }
     });
     Ok(())
