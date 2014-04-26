@@ -6,7 +6,7 @@ use sdl2::render;
 use sdl2::{event, keycode};
 // for Renderer trait
 use sdl2_gfx::primitives::DrawRenderer;
-use sdl2::pixels::{Color, RGB, RGBA};
+use sdl2::pixels::ToColor;
 use sdl2::rwops;
 use sdl2_ttf::LoaderRWops;
 
@@ -24,16 +24,16 @@ macro_rules! rect(
 )
 
 // colors
-static BG_COLOR: Color = RGB(0xee, 0xe4, 0xda);
-static FG_COLOR: Color = RGB(0x77, 0x6e, 0x65);
-static CHAR_COLOR: Color = RGB(0xee, 0x33, 0x66);
-static CONTAINER_COLOR: Color = RGBA(0x77, 0x6e, 0x65, 200);
-static CELL_COLORS: &'static [Color] = &'static [
-    RGBA(0xee, 0xe4, 0xda, 120), RGB(0xed, 0xe0, 0xc8), RGB(0xf2, 0xb1, 0x79),
-    RGB(0xf5, 0x95, 0x64), RGB(0xf6, 0x7c, 0x5f), RGB(0xf6, 0x5e, 0x3b),
-    RGB(0xed, 0xcf, 0x72), RGB(0xed, 0xcc, 0x61), RGB(0xed, 0xc8, 0x50),
-    RGB(0xed, 0xc5, 0x3f), RGB(0xed, 0xc2, 0x2e), RGB(0x3c, 0x3a, 0x32), ];
-static SUPER_CELL_COLOR: Color = RGB(0xcc, 0x33, 0xff);
+static BG_COLOR: u32  = 0xeee4daff;
+static FG_COLOR: u32 = 0x776e65ff;
+static CHAR_COLOR: u32 = 0xFF0000ff;
+static CONTAINER_COLOR: u32 = 0x776e65ff;
+static CELL_COLORS: &'static [u32] = &'static [
+    0xeee4daff, 0xede0c8ff, 0xf2b179ff,
+    0xf59564ff, 0xf67c5fff, 0xf65e3bff,
+    0xedcf72ff, 0xedcc61ff, 0xedc850ff,
+    0xedc53fff, 0xedc22eff, 0x3c3a32ff, ];
+static SUPER_CELL_COLOR: u32 = 0xcc33ffff;
 
 // Font
 static TTF_FONT_RAW_BYTES: &'static [u8] = include_bin!("./res/OpenDyslexic-Regular.ttf");
@@ -134,9 +134,9 @@ fn draw_popup(ren: &render::Renderer, font: &ttf::Font, msg: &str) -> Result<(),
 pub fn run(game_size: uint) -> Result<(), ~str> {
     let win = try!(video::Window::new(
         "Rust - 2048", video::PosCentered, video::PosCentered, SCREEN_WIDTH, SCREEN_HEIGHT,
-        [video::Shown]));
+        video::Shown));
     let ren = try!(render::Renderer::from_window(
-        win, render::DriverAuto, [render::Accelerated]));
+        win, render::DriverAuto, render::Accelerated));
 
     let mut fpsm = sdl2_gfx::framerate::FPSManager::new();
     try!(fpsm.set_framerate(50));
@@ -155,7 +155,7 @@ pub fn run(game_size: uint) -> Result<(), ~str> {
     'main : loop {
         'event : loop {
             fpsm.delay();
-            try!(ren.set_draw_color(BG_COLOR));
+            try!(ren.set_draw_color(BG_COLOR.to_color()));
             try!(ren.clear());
             // == main drawing ==
             try!(draw_title(&*ren, &*font));
