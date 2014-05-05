@@ -6,7 +6,7 @@ use sdl2::render;
 use sdl2::{event, keycode};
 // for Renderer trait
 use sdl2_gfx::primitives::DrawRenderer;
-use sdl2::pixels::ToColor;
+use sdl2::pixels::{Color, RGB, RGBA};
 use sdl2::rwops;
 use sdl2_ttf::LoaderRWops;
 
@@ -24,16 +24,16 @@ macro_rules! rect(
 )
 
 // colors
-static BG_COLOR: u32  = 0xeee4daff;
-static FG_COLOR: u32 = 0x776e65ff;
-static CHAR_COLOR: u32 = 0xFF0000ff;
-static CONTAINER_COLOR: u32 = 0x776e65ff;
-static CELL_COLORS: &'static [u32] = &'static [
-    0xeee4daff, 0xede0c8ff, 0xf2b179ff,
-    0xf59564ff, 0xf67c5fff, 0xf65e3bff,
-    0xedcf72ff, 0xedcc61ff, 0xedc850ff,
-    0xedc53fff, 0xedc22eff, 0x3c3a32ff, ];
-static SUPER_CELL_COLOR: u32 = 0xcc33ffff;
+static BG_COLOR: Color = RGB(0xee, 0xe4, 0xda);
+static FG_COLOR: Color = RGB(0x77, 0x6e, 0x65);
+static CHAR_COLOR: Color = RGB(0xee, 0x33, 0x66);
+static CONTAINER_COLOR: Color = RGBA(0x77, 0x6e, 0x65, 200);
+static CELL_COLORS: &'static [Color] = &'static [
+    RGBA(0xee, 0xe4, 0xda, 120), RGB(0xed, 0xe0, 0xc8), RGB(0xf2, 0xb1, 0x79),
+    RGB(0xf5, 0x95, 0x64), RGB(0xf6, 0x7c, 0x5f), RGB(0xf6, 0x5e, 0x3b),
+    RGB(0xed, 0xcf, 0x72), RGB(0xed, 0xcc, 0x61), RGB(0xed, 0xc8, 0x50),
+    RGB(0xed, 0xc5, 0x3f), RGB(0xed, 0xc2, 0x2e), RGB(0x3c, 0x3a, 0x32), ];
+static SUPER_CELL_COLOR: Color = RGB(0xcc, 0x33, 0xff);
 
 // Font
 static TTF_FONT_RAW_BYTES: &'static [u8] = include_bin!("./res/OpenDyslexic-Regular.ttf");
@@ -82,8 +82,8 @@ fn draw_game(gm: &mut game::GameManager, ren: &render::Renderer, font: &ttf::Fon
             let tw = (tw as f64 * ratio) as int;
             let th = (th as f64 * ratio) as int;
 
-            ren.copy(tex, None, Some(rect!(bx as int + CELL_WIDTH / 2 - tw/2, by as int + CELL_WIDTH / 2 - th/2,
-                                               tw, th)));
+            ren.copy(&tex, None, Some(rect!(bx as int + CELL_WIDTH / 2 - tw/2, by as int + CELL_WIDTH / 2 - th/2,
+                                            tw, th)));
         }
     });
     Ok(())
@@ -99,7 +99,7 @@ fn draw_title(ren: &render::Renderer, font: &ttf::Font) -> Result<(), ~str> {
         let text = try!(font.render_str_blended(wd, FG_COLOR));
         (try!(ren.create_texture_from_surface(text)), w, h)
     };
-    try!(ren.copy(tex2, None, Some(rect!(SCREEN_WIDTH / 2 - w / 2, 20, w, h))));
+    try!(ren.copy(&tex2, None, Some(rect!(SCREEN_WIDTH / 2 - w / 2, 20, w, h))));
     Ok(())
 }
 
@@ -123,7 +123,7 @@ fn draw_popup(ren: &render::Renderer, font: &ttf::Font, msg: &str) -> Result<(),
                                (SCREEN_HEIGHT / 2 + h / 2) as i16,
                                5,
                                FG_COLOR));
-    try!(ren.copy(tex, None, Some(rect!(SCREEN_WIDTH / 2 - w / 2,
+    try!(ren.copy(&tex, None, Some(rect!(SCREEN_WIDTH / 2 - w / 2,
                                         SCREEN_HEIGHT / 2 - h / 2,
                                         w,
                                         h))));
@@ -142,7 +142,7 @@ pub fn run(game_size: uint) -> Result<(), ~str> {
     try!(fpsm.set_framerate(50));
 
 
-    let font : ~ttf::Font = {
+    let font = {
         let raw = try!(rwops::RWops::from_bytes(TTF_FONT_RAW_BYTES));
         // or try!(ttf::Font::from_file(&Path::new("./OpenDyslexic-Regular.ttf"), 48));
         try!(raw.load_font(48))
@@ -155,23 +155,23 @@ pub fn run(game_size: uint) -> Result<(), ~str> {
     'main : loop {
         'event : loop {
             fpsm.delay();
-            try!(ren.set_draw_color(BG_COLOR.to_color()));
+            try!(ren.set_draw_color(BG_COLOR));
             try!(ren.clear());
             // == main drawing ==
-            try!(draw_title(&*ren, &*font));
+            try!(draw_title(&ren, &font));
             try!(ren.string(0i16, 0i16, format!("frames: {}", fpsm.get_frame_count()), CHAR_COLOR));
 
             try!(ren.string(200, 90, format!("your score: {}", gm.score), CHAR_COLOR));
 
-            try!(draw_game(&mut gm, &*ren, &*font, (SCREEN_WIDTH / 2 - 400 / 2, 100, 400, 400)));
+            try!(draw_game(&mut gm, &ren, &font, (SCREEN_WIDTH / 2 - 400 / 2, 100, 400, 400)));
 
             if celebrating || (playing && !gm.moves_available()) { // can't move
-                try!(draw_popup(&*ren, &*font, format!("Score: {}! Max Cell: {}", gm.score, "NaN")));
+                try!(draw_popup(&ren, &font, format!("Score: {}! Max Cell: {}", gm.score, "NaN")));
                 playing = false;
                 celebrating = true;
 
             } else if !playing && !celebrating {
-                try!(draw_popup(&*ren, &*font, "Press SPACE to start!"));
+                try!(draw_popup(&ren, &font, "Press SPACE to start!"));
             }
 
             // == main drawing ends ==
