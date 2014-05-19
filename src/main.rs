@@ -23,7 +23,13 @@ fn main() {
     // sdl2_image::init([sdl2_image::InitPng, sdl2_image::InitJpg]);
     sdl2_ttf::init();
 
-    let size : uint = args.get(2).and_then(|s| from_str(*s)).unwrap_or(4);
+    let size : uint = match args.len() {
+        1 => 4,
+        3 => from_str(*args.get(2)).unwrap_or(4),
+        _ => {
+            fail!("usage: ./game2048 --size NUM")
+        }
+    };
 
     match ui::run(size) {
         Ok(_) => (),

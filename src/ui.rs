@@ -70,7 +70,7 @@ fn draw_game(gm: &mut game::GameManager, ren: &render::Renderer, font: &ttf::Fon
                 let wd = format!("{}", val);
                 let (w, h) = font.size_of_str(wd).ok().expect("size of str");
                 let text = font.render_str_blended(wd, FG_COLOR).ok().expect("renderred surface");
-                (ren.create_texture_from_surface(text).ok().expect("create texture"), w, h)
+                (ren.create_texture_from_surface(&text).ok().expect("create texture"), w, h)
             };
 
             let ratio = if tw > CELL_WIDTH {
@@ -97,7 +97,7 @@ fn draw_title(ren: &render::Renderer, font: &ttf::Font) -> Result<(), ~str> {
         //font.set_style([ttf::StyleBold]);
         let (w, h) = try!(font.size_of_str(wd));
         let text = try!(font.render_str_blended(wd, FG_COLOR));
-        (try!(ren.create_texture_from_surface(text)), w, h)
+        (try!(ren.create_texture_from_surface(&text)), w, h)
     };
     try!(ren.copy(&tex2, None, Some(rect!(SCREEN_WIDTH / 2 - w / 2, 20, w, h))));
     Ok(())
@@ -109,7 +109,7 @@ fn draw_popup(ren: &render::Renderer, font: &ttf::Font, msg: &str) -> Result<(),
         //font.set_style([ttf::StyleBold]);
         let (w, h) = try!(font.size_of_str(msg));
         let text = try!(font.render_str_blended(msg, FG_COLOR));
-        (try!(ren.create_texture_from_surface(text)), w, h)
+        (try!(ren.create_texture_from_surface(&text)), w, h)
     };
     try!(ren.rounded_box((SCREEN_WIDTH / 2 - w / 2) as i16,
                          (SCREEN_HEIGHT / 2 - h / 2) as i16,

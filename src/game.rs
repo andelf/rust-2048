@@ -100,7 +100,7 @@ impl Tile {
 
 impl fmt::Show for Tile {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.buf.write_str(format!("[{:4d}]", self.value))
+        write!(f, "[{:4d}]", self.value)
     }
 }
 
