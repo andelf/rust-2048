@@ -2,7 +2,7 @@ use std::fmt;
 use std::rand;
 
 
-#[deriving(Eq, Show)]
+#[deriving(PartialEq, Show)]
 pub enum Direction {
     Up,
     Right,
@@ -67,7 +67,7 @@ impl Iterator<(uint, uint)> for Traversal {
     }
 }
 
-#[deriving(Eq, Clone)]
+#[deriving(PartialEq, Clone)]
 pub struct Tile {
     pub x: uint,
     pub y: uint,
@@ -119,7 +119,7 @@ impl fmt::Show for Tile {
 //
 
 
-#[deriving(Eq, Show, Clone)]
+#[deriving(PartialEq, Show, Clone)]
 pub struct Grid {
     pub size: uint,
     pub cells: Vec<Vec<Option<Tile>>>
