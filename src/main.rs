@@ -3,7 +3,6 @@
 
 #![feature(globs, macro_rules)]
 
-extern crate rand;
 extern crate sdl2;
 // extern crate sdl2_image;
 extern crate sdl2_ttf;
@@ -14,6 +13,7 @@ use std::from_str::from_str;
 
 #[allow(dead_code)]
 mod ui;
+mod game;
 
 
 fn main() {
@@ -25,7 +25,7 @@ fn main() {
 
     let size : uint = match args.len() {
         1 => 4,
-        3 => from_str(*args.get(2)).unwrap_or(4),
+        3 => from_str(args.get(2).as_slice()).unwrap_or(4),
         _ => {
             fail!("usage: ./game2048 --size NUM")
         }

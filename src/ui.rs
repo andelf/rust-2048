@@ -9,12 +9,11 @@ use sdl2_gfx::primitives::DrawRenderer;
 use sdl2::pixels::{Color, RGB, RGBA};
 use sdl2::rwops;
 use sdl2_ttf::LoaderRWops;
-
+use sdl2::SdlResult;
+use game;
 
 static SCREEN_WIDTH : int = 800;
 static SCREEN_HEIGHT : int = 600;
-
-mod game;
 
 // hadle the annoying Rect i32
 macro_rules! rect(
@@ -39,8 +38,8 @@ static SUPER_CELL_COLOR: Color = RGB(0xcc, 0x33, 0xff);
 static TTF_FONT_RAW_BYTES: &'static [u8] = include_bin!("./res/OpenDyslexic-Regular.ttf");
 
 #[allow(uppercase_variables, unused_must_use)]
-fn draw_game(gm: &mut game::GameManager, ren: &render::Renderer, font: &ttf::Font,
-             (x,y,w,h): (int,int,int,int)) -> Result<(), ~str> {
+fn draw_game<T>(gm: &mut game::GameManager, ren: &render::Renderer<T>, font: &ttf::Font,
+                (x,y,w,h): (int,int,int,int)) -> SdlResult<()> {
     assert_eq!(w, h);
     // BEST in 500x500
     let SIZE = gm.size;
@@ -68,8 +67,8 @@ fn draw_game(gm: &mut game::GameManager, ren: &render::Renderer, font: &ttf::Fon
         if val != 0 {
             let (tex, tw, th) = {
                 let wd = format!("{}", val);
-                let (w, h) = font.size_of_str(wd).ok().expect("size of str");
-                let text = font.render_str_blended(wd, FG_COLOR).ok().expect("renderred surface");
+                let (w, h) = font.size_of_str(wd.as_slice()).ok().expect("size of str");
+                let text = font.render_str_blended(wd.as_slice(), FG_COLOR).ok().expect("renderred surface");
                 (ren.create_texture_from_surface(&text).ok().expect("create texture"), w, h)
             };
 
@@ -91,7 +90,7 @@ fn draw_game(gm: &mut game::GameManager, ren: &render::Renderer, font: &ttf::Fon
 
 
 
-fn draw_title(ren: &render::Renderer, font: &ttf::Font) -> Result<(), ~str> {
+fn draw_title<T>(ren: &render::Renderer<T>, font: &ttf::Font) -> SdlResult<()> {
     let (tex2, w, h) = {
         let wd = "Rust - 2048";
         //font.set_style([ttf::StyleBold]);
@@ -104,7 +103,7 @@ fn draw_title(ren: &render::Renderer, font: &ttf::Font) -> Result<(), ~str> {
 }
 
 // FIXME: tooooooo many type convertion
-fn draw_popup(ren: &render::Renderer, font: &ttf::Font, msg: &str) -> Result<(), ~str> {
+fn draw_popup<T>(ren: &render::Renderer<T>, font: &ttf::Font, msg: &str) -> SdlResult<()> {
     let (tex, w, h) = {
         //font.set_style([ttf::StyleBold]);
         let (w, h) = try!(font.size_of_str(msg));
@@ -131,7 +130,7 @@ fn draw_popup(ren: &render::Renderer, font: &ttf::Font, msg: &str) -> Result<(),
 }
 
 
-pub fn run(game_size: uint) -> Result<(), ~str> {
+pub fn run(game_size: uint) -> SdlResult<()> {
     let win = try!(video::Window::new(
         "Rust - 2048", video::PosCentered, video::PosCentered, SCREEN_WIDTH, SCREEN_HEIGHT,
         video::Shown));
@@ -159,14 +158,14 @@ pub fn run(game_size: uint) -> Result<(), ~str> {
             try!(ren.clear());
             // == main drawing ==
             try!(draw_title(&ren, &font));
-            try!(ren.string(0i16, 0i16, format!("frames: {}", fpsm.get_frame_count()), CHAR_COLOR));
+            try!(ren.string(0i16, 0i16, format!("frames: {}", fpsm.get_frame_count()).as_slice(), CHAR_COLOR));
 
-            try!(ren.string(200, 90, format!("your score: {}", gm.score), CHAR_COLOR));
+            try!(ren.string(200, 90, format!("your score: {}", gm.score).as_slice(), CHAR_COLOR));
 
             try!(draw_game(&mut gm, &ren, &font, (SCREEN_WIDTH / 2 - 400 / 2, 100, 400, 400)));
 
             if celebrating || (playing && !gm.moves_available()) { // can't move
-                try!(draw_popup(&ren, &font, format!("Score: {}! Max Cell: {}", gm.score, "NaN")));
+                try!(draw_popup(&ren, &font, format!("Score: {}! Max Cell: {}", gm.score, "NaN").as_slice()));
                 playing = false;
                 celebrating = true;
 

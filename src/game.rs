@@ -1,5 +1,5 @@
-use rand;
 use std::fmt;
+use std::rand;
 
 
 #[deriving(Eq, Show)]
@@ -206,7 +206,7 @@ impl Grid {
         }
     }
 
-    fn debug_print(&self) {
+    pub fn debug_print(&self) {
         for col in self.cells.iter() {
             for cell in col.iter() {
                 match *cell {
