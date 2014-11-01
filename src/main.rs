@@ -1,4 +1,4 @@
-#![crate_id = "game2048"]
+#![crate_name = "game2048"]
 #![crate_type = "bin"]
 
 #![feature(globs, macro_rules)]
@@ -25,15 +25,15 @@ fn main() {
 
     let size : uint = match args.len() {
         1 => 4,
-        3 => from_str(args.get(2).as_slice()).unwrap_or(4),
+        3 => from_str(args[2].as_slice()).unwrap_or(4),
         _ => {
-            fail!("usage: ./game2048 --size NUM")
+            panic!("usage: ./game2048 --size NUM")
         }
     };
 
     match ui::run(size) {
         Ok(_) => (),
-        Err(e) => fail!("Error while running game: {}", e),
+        Err(e) => panic!("Error while running game: {}", e),
     }
 
     sdl2_ttf::quit();

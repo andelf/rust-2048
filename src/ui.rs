@@ -37,15 +37,15 @@ static SUPER_CELL_COLOR: Color = RGB(0xcc, 0x33, 0xff);
 // Font
 static TTF_FONT_RAW_BYTES: &'static [u8] = include_bin!("./res/OpenDyslexic-Regular.ttf");
 
-#[allow(uppercase_variables, unused_must_use)]
-fn draw_game<T>(gm: &mut game::GameManager, ren: &render::Renderer<T>, font: &sdl2_ttf::Font,
+#[allow(unused_must_use)]
+fn draw_game(gm: &mut game::GameManager, ren: &render::Renderer, font: &sdl2_ttf::Font,
                 (x,y,w,h): (int,int,int,int)) -> SdlResult<()> {
     assert_eq!(w, h);
     // BEST in 500x500
-    let SIZE = gm.size;
-    let CONTAINER_PADDING: int = 50  / (SIZE as int + 1);
-    let CELL_WIDTH = (w - CONTAINER_PADDING * (SIZE as int + 1)) / SIZE as int ;
-    assert!(CELL_WIDTH > 40); // Min width
+    let size = gm.size;
+    let container_padding: int = 50  / (size as int + 1);
+    let cell_width = (w - container_padding * (size as int + 1)) / size as int ;
+    assert!(cell_width > 40); // Min width
     try!(ren.box_(x as i16, y as i16, (x+w) as i16, (y+h) as i16, CONTAINER_COLOR));
     gm.grid.each_cell(|j, i, tile_opt| {
         let i = i as int;
@@ -60,9 +60,9 @@ fn draw_game<T>(gm: &mut game::GameManager, ren: &render::Renderer<T>, font: &sd
             (val as f64).log2() as uint
         };
         let color = CELL_COLORS.get(c).map(|&co| co).unwrap_or(SUPER_CELL_COLOR);
-        let bx = (x + CONTAINER_PADDING * (j + 1) + CELL_WIDTH * j) as i16;
-        let by = (y + CONTAINER_PADDING * (i + 1) + CELL_WIDTH * i) as i16;
-        ren.box_(bx, by, bx + CELL_WIDTH as i16, by + CELL_WIDTH as i16, color);
+        let bx = (x + container_padding * (j + 1) + cell_width * j) as i16;
+        let by = (y + container_padding * (i + 1) + cell_width * i) as i16;
+        ren.box_(bx, by, bx + cell_width as i16, by + cell_width as i16, color);
         // ren.string(bx, by, format!("({}, {})", j, i), CHAR_COLOR); // DEBUG
         if val != 0 {
             let (tex, tw, th) = {
@@ -72,16 +72,16 @@ fn draw_game<T>(gm: &mut game::GameManager, ren: &render::Renderer<T>, font: &sd
                 (ren.create_texture_from_surface(&text).ok().expect("create texture"), w, h)
             };
 
-            let ratio = if tw > CELL_WIDTH {
-                CELL_WIDTH as f64 / tw as f64
-            } else if th > CELL_WIDTH {
-                CELL_WIDTH as f64 / th as f64
+            let ratio = if tw > cell_width {
+                cell_width as f64 / tw as f64
+            } else if th > cell_width {
+                cell_width as f64 / th as f64
             } else { 1.0 };
 
             let tw = (tw as f64 * ratio) as int;
             let th = (th as f64 * ratio) as int;
 
-            ren.copy(&tex, None, Some(rect!(bx as int + CELL_WIDTH / 2 - tw/2, by as int + CELL_WIDTH / 2 - th/2,
+            ren.copy(&tex, None, Some(rect!(bx as int + cell_width / 2 - tw/2, by as int + cell_width / 2 - th/2,
                                             tw, th)));
         }
     });
@@ -90,7 +90,7 @@ fn draw_game<T>(gm: &mut game::GameManager, ren: &render::Renderer<T>, font: &sd
 
 
 
-fn draw_title<T>(ren: &render::Renderer<T>, font: &sdl2_ttf::Font) -> SdlResult<()> {
+fn draw_title(ren: &render::Renderer, font: &sdl2_ttf::Font) -> SdlResult<()> {
     let (tex2, w, h) = {
         let wd = "Rust - 2048";
         //font.set_style([sdl2_ttf::StyleBold]);
@@ -103,7 +103,7 @@ fn draw_title<T>(ren: &render::Renderer<T>, font: &sdl2_ttf::Font) -> SdlResult<
 }
 
 // FIXME: tooooooo many type convertion
-fn draw_popup<T>(ren: &render::Renderer<T>, font: &sdl2_ttf::Font, msg: &str) -> SdlResult<()> {
+fn draw_popup(ren: &render::Renderer, font: &sdl2_ttf::Font, msg: &str) -> SdlResult<()> {
     let (tex, w, h) = {
         //font.set_style([sdl2_ttf::StyleBold]);
         let (w, h) = try!(font.size_of_str(msg));

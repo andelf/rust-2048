@@ -47,7 +47,7 @@ impl Traversal {
         if y == 1 {
             ys.reverse()
         }
-        Traversal { xs: xs.as_slice().into_owned(), ys: ys.as_slice().into_owned(),
+        Traversal { xs: xs.as_slice().to_vec(), ys: ys.as_slice().to_vec(),
                     idx: 0, max_idx: size * size,
                     size: size,
         }
@@ -140,7 +140,7 @@ impl Grid {
         match cells.len() {
             0 => None,
             n => {
-                Some(*cells.get(rand::random::<uint>() % n))
+                Some(cells[rand::random::<uint>() % n])
             }
         }
     }
@@ -159,7 +159,7 @@ impl Grid {
     pub fn each_cell(&self, callback: |uint, uint, Option<&Tile>|) {
         for x in range(0u, self.size) {
             for y in range(0u, self.size) {
-                callback(x, y, self.cells.get(x).get(y).as_ref())
+                callback(x, y, self.cells[x][y].as_ref())
             }
         }
     }
@@ -167,7 +167,7 @@ impl Grid {
     pub fn each_mut_cell(&mut self, callback: |uint, uint, &mut Option<Tile>|) {
         for x in range(0u, self.size) {
             for y in range(0u, self.size) {
-                callback(x, y, self.cells.get_mut(x).get_mut(y))
+                callback(x, y, &mut self.cells[x][y])
             }
         }
     }
@@ -178,20 +178,20 @@ impl Grid {
     }
 
     pub fn cell_available(&self, (x, y): (uint, uint)) -> bool {
-        self.cells.get(x).get(y).is_none()
+        self.cells[x][y].is_none()
     }
 
-    pub fn cell_occupied(&self, (x, y): (uint, uint)) -> bool {
-        self.cells.get(x).get(y).is_some()
-    }
+    // pub fn cell_occupied(&self, (x, y): (uint, uint)) -> bool {
+    //     self.cells[x][y].is_some()
+    // }
 
     pub fn insert_tile(&mut self, tile: Tile) {
-        *self.cells.get_mut(tile.x).get_mut(tile.y) = Some(tile);
+        self.cells[tile.x][tile.y] = Some(tile);
     }
 
     pub fn remove_tile(&mut self, tile: Tile) {
         println!("remove ({}, {})", tile.x, tile.y);
-        *self.cells.get_mut(tile.x).get_mut(tile.y) = None;
+        self.cells[tile.x][tile.y] = None;
     }
 
     pub fn within_bounds(&self, (x, y): (uint, uint)) -> bool {
@@ -200,12 +200,13 @@ impl Grid {
 
     pub fn cell_content(&self, (x, y): (uint, uint)) -> Option<Tile> {
         if self.within_bounds((x, y)) {
-            *self.cells.get(x).get(y)
+            self.cells[x][y]
         } else {
             None
         }
     }
 
+    #[allow(dead_code)]
     pub fn debug_print(&self) {
         for col in self.cells.iter() {
             for cell in col.iter() {
@@ -274,11 +275,11 @@ impl GameManager {
     pub fn move_tile(&mut self, tile: Tile, (x, y): (uint, uint)) {
         println!("move {} to {}", tile.pos(), (x,y));
         let mut tile = tile;
-        *self.grid.cells.get_mut(tile.x).get_mut(tile.y) = None;
+        self.grid.cells[tile.x][tile.y] = None;
         tile.update_position((x, y));
         //*self.grid.cells.get_mut(tile.x).get_mut(tile.y) = None;
-        let pos = self.grid.cells.get_mut(x).get_mut(y);
-        *pos = Some(tile);
+        self.grid.cells[x][y] = Some(tile);
+        //*pos = Some(tile);
         //(*pos).unwrap().update_position((x, y));
     }
 
