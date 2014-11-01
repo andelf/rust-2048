@@ -1,7 +1,9 @@
-before_install:
-  - wget -q http://static.rust-lang.org/dist/rust-nightly-x86_64-unknown-linux-gnu.tar.gz
-  - tar xf rust-nightly-x86_64-unknown-linux-gnu.tar.gz
-  - sudo ./rust-nightly-x86_64-unknown-linux-gnu/install.sh
+language: rust
+os:
+    - linux
+env:
+  global:
+    - LD_LIBRARY_PATH: /usr/local/lib
 install:
   - cd ..
   - time wget -q http://www.libsdl.org/release/SDL2-2.0.3.tar.gz
@@ -19,12 +21,8 @@ install:
   - cd SDL2_ttf-*
   - ./configure && make && sudo make install
   - cd -
-  - git clone https://github.com/andelf/rust-sdl2.git
-  - git clone https://github.com/andelf/rust-sdl2_gfx.git
-  - git clone https://github.com/andelf/rust-sdl2_ttf.git
-  - (cd rust-sdl2 && make)
-  - rustc rust-sdl2/src/sdl2/lib.rs
-  - rustc -L. rust-sdl2_gfx/src/sdl2_gfx/lib.rs
-  - rustc -L. rust-sdl2_ttf/src/sdl2_ttf/lib.rs
 script:
-  - rustc -L. rust-2048/src/main.rs
+  - cd rust-2048
+  - cargo build -v
+  - cargo test -v
+  - cargo doc -v
