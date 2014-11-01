@@ -21,15 +21,15 @@ impl Direction {
     }
 
     // Haskell succ/pred???
-    fn all_directions() -> ~[Direction] {
-        ~[Up, Right, Down, Left]
+    fn all_directions<'r>() -> Vec<Direction> {
+        vec![Up, Right, Down, Left]
     }
 
 }
 
 pub struct Traversal {
-    xs: ~[uint],
-    ys: ~[uint],
+    xs: Vec<uint>,
+    ys: Vec<uint>,
 
     idx: uint,
     max_idx: uint,
@@ -282,7 +282,7 @@ impl GameManager {
         //(*pos).unwrap().update_position((x, y));
     }
 
-    pub fn move(&mut self, dir: Direction) -> bool {
+    pub fn move_to(&mut self, dir: Direction) -> bool {
         let mut moved = false;
 
         self.prepare_tiles();

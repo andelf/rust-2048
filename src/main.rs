@@ -19,7 +19,7 @@ mod game;
 fn main() {
     let args = os::args();
 
-    sdl2::init(sdl2::InitVideo);
+    sdl2::init(sdl2::INIT_VIDEO);
     // sdl2_image::init([sdl2_image::InitPng, sdl2_image::InitJpg]);
     sdl2_ttf::init();
 

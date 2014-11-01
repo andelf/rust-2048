@@ -1,0 +1,26 @@
+[package]
+
+name = "game2048"
+version = "0.0.1"
+authors = ["ShuYu Wang<andelf@gmail.com>"]
+
+[[bin]]
+
+name = "game2048"
+path = "src/main.rs"
+
+[dependencies.sdl2]
+
+git = "https://github.com/AngryLawyer/rust-sdl2"
+
+[dependencies.sdl2_image]
+
+git = "https://github.com/andelf/rust-sdl2_image"
+
+[dependencies.sdl2_ttf]
+
+git = "https://github.com/andelf/rust-sdl2_ttf"
+
+[dependencies.sdl2_gfx]
+
+git = "https://github.com/andelf/rust-sdl2_gfx"

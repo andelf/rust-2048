@@ -1,6 +1,6 @@
 use sdl2;
 use sdl2_gfx;
-use ttf = sdl2_ttf;
+use sdl2_ttf;
 use sdl2::video;
 use sdl2::render;
 use sdl2::{event, keycode};
@@ -27,7 +27,7 @@ static BG_COLOR: Color = RGB(0xee, 0xe4, 0xda);
 static FG_COLOR: Color = RGB(0x77, 0x6e, 0x65);
 static CHAR_COLOR: Color = RGB(0xee, 0x33, 0x66);
 static CONTAINER_COLOR: Color = RGBA(0x77, 0x6e, 0x65, 200);
-static CELL_COLORS: &'static [Color] = &'static [
+static CELL_COLORS: &'static [Color] = &[
     RGBA(0xee, 0xe4, 0xda, 120), RGB(0xed, 0xe0, 0xc8), RGB(0xf2, 0xb1, 0x79),
     RGB(0xf5, 0x95, 0x64), RGB(0xf6, 0x7c, 0x5f), RGB(0xf6, 0x5e, 0x3b),
     RGB(0xed, 0xcf, 0x72), RGB(0xed, 0xcc, 0x61), RGB(0xed, 0xc8, 0x50),
@@ -38,7 +38,7 @@ static SUPER_CELL_COLOR: Color = RGB(0xcc, 0x33, 0xff);
 static TTF_FONT_RAW_BYTES: &'static [u8] = include_bin!("./res/OpenDyslexic-Regular.ttf");
 
 #[allow(uppercase_variables, unused_must_use)]
-fn draw_game<T>(gm: &mut game::GameManager, ren: &render::Renderer<T>, font: &ttf::Font,
+fn draw_game<T>(gm: &mut game::GameManager, ren: &render::Renderer<T>, font: &sdl2_ttf::Font,
                 (x,y,w,h): (int,int,int,int)) -> SdlResult<()> {
     assert_eq!(w, h);
     // BEST in 500x500
@@ -90,10 +90,10 @@ fn draw_game<T>(gm: &mut game::GameManager, ren: &render::Renderer<T>, font: &tt
 
 
 
-fn draw_title<T>(ren: &render::Renderer<T>, font: &ttf::Font) -> SdlResult<()> {
+fn draw_title<T>(ren: &render::Renderer<T>, font: &sdl2_ttf::Font) -> SdlResult<()> {
     let (tex2, w, h) = {
         let wd = "Rust - 2048";
-        //font.set_style([ttf::StyleBold]);
+        //font.set_style([sdl2_ttf::StyleBold]);
         let (w, h) = try!(font.size_of_str(wd));
         let text = try!(font.render_str_blended(wd, FG_COLOR));
         (try!(ren.create_texture_from_surface(&text)), w, h)
@@ -103,9 +103,9 @@ fn draw_title<T>(ren: &render::Renderer<T>, font: &ttf::Font) -> SdlResult<()> {
 }
 
 // FIXME: tooooooo many type convertion
-fn draw_popup<T>(ren: &render::Renderer<T>, font: &ttf::Font, msg: &str) -> SdlResult<()> {
+fn draw_popup<T>(ren: &render::Renderer<T>, font: &sdl2_ttf::Font, msg: &str) -> SdlResult<()> {
     let (tex, w, h) = {
-        //font.set_style([ttf::StyleBold]);
+        //font.set_style([sdl2_ttf::StyleBold]);
         let (w, h) = try!(font.size_of_str(msg));
         let text = try!(font.render_str_blended(msg, FG_COLOR));
         (try!(ren.create_texture_from_surface(&text)), w, h)
@@ -133,9 +133,9 @@ fn draw_popup<T>(ren: &render::Renderer<T>, font: &ttf::Font, msg: &str) -> SdlR
 pub fn run(game_size: uint) -> SdlResult<()> {
     let win = try!(video::Window::new(
         "Rust - 2048", video::PosCentered, video::PosCentered, SCREEN_WIDTH, SCREEN_HEIGHT,
-        video::Shown));
+        video::SHOWN));
     let ren = try!(render::Renderer::from_window(
-        win, render::DriverAuto, render::Accelerated));
+        win, render::DriverAuto, render::ACCELERATED));
 
     let mut fpsm = sdl2_gfx::framerate::FPSManager::new();
     try!(fpsm.set_framerate(50));
@@ -143,7 +143,7 @@ pub fn run(game_size: uint) -> SdlResult<()> {
 
     let font = {
         let raw = try!(rwops::RWops::from_bytes(TTF_FONT_RAW_BYTES));
-        // or try!(ttf::Font::from_file(&Path::new("./OpenDyslexic-Regular.ttf"), 48));
+        // or try!(sdl2_ttf::Font::from_file(&Path::new("./OpenDyslexic-Regular.ttf"), 48));
         try!(raw.load_font(48))
     };
     let mut gm = game::GameManager::new(game_size);
@@ -179,16 +179,16 @@ pub fn run(game_size: uint) -> SdlResult<()> {
             match event::poll_event() {
                 event::QuitEvent(_) => break 'main,
                 event::KeyDownEvent(_, _, keycode::LeftKey, _, _) if playing => {
-                    gm.move(game::Left);
+                    gm.move_to(game::Left);
                 }
                 event::KeyDownEvent(_, _, keycode::RightKey, _, _) if playing => {
-                    gm.move(game::Right);
+                    gm.move_to(game::Right);
                 }
                 event::KeyDownEvent(_, _, keycode::UpKey, _, _) if playing => {
-                    gm.move(game::Up);
+                    gm.move_to(game::Up);
                 }
                 event::KeyDownEvent(_, _, keycode::DownKey, _, _) if playing => {
-                    gm.move(game::Down);
+                    gm.move_to(game::Down);
                 }
                 event::KeyDownEvent(_, _, key, _, _) => {
                     if key == keycode::EscapeKey {
