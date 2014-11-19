@@ -1,9 +1,14 @@
+use std::num::Float;
 use sdl2;
 use sdl2_gfx;
 use sdl2_ttf;
 use sdl2::video;
 use sdl2::render;
-use sdl2::{event, keycode};
+use sdl2::render::{RenderDriverIndex};
+use sdl2::keycode::KeyCode;
+
+use sdl2::event;
+use sdl2::event::Event;
 // for Renderer trait
 use sdl2_gfx::primitives::DrawRenderer;
 use sdl2::pixels::{Color, RGB, RGBA};
@@ -11,6 +16,7 @@ use sdl2::rwops;
 use sdl2_ttf::LoaderRWops;
 use sdl2::SdlResult;
 use game;
+use game::Direction;
 
 static SCREEN_WIDTH : int = 800;
 static SCREEN_HEIGHT : int = 600;
@@ -135,7 +141,7 @@ pub fn run(game_size: uint) -> SdlResult<()> {
         "Rust - 2048", video::PosCentered, video::PosCentered, SCREEN_WIDTH, SCREEN_HEIGHT,
         video::SHOWN));
     let ren = try!(render::Renderer::from_window(
-        win, render::DriverAuto, render::ACCELERATED));
+        win, RenderDriverIndex::Auto, render::ACCELERATED));
 
     let mut fpsm = sdl2_gfx::framerate::FPSManager::new();
     try!(fpsm.set_framerate(50));
@@ -177,23 +183,23 @@ pub fn run(game_size: uint) -> SdlResult<()> {
             ren.present();
 
             match event::poll_event() {
-                event::QuitEvent(_) => break 'main,
-                event::KeyDownEvent(_, _, keycode::LeftKey, _, _) if playing => {
-                    gm.move_to(game::Left);
+                Event::Quit(_) => break 'main,
+                Event::KeyDown(_, _, KeyCode::Left, _, _) if playing => {
+                    gm.move_to(Direction::Left);
                 }
-                event::KeyDownEvent(_, _, keycode::RightKey, _, _) if playing => {
-                    gm.move_to(game::Right);
+                Event::KeyDown(_, _, KeyCode::Right, _, _) if playing => {
+                    gm.move_to(Direction::Right);
                 }
-                event::KeyDownEvent(_, _, keycode::UpKey, _, _) if playing => {
-                    gm.move_to(game::Up);
+                Event::KeyDown(_, _, KeyCode::Up, _, _) if playing => {
+                    gm.move_to(Direction::Up);
                 }
-                event::KeyDownEvent(_, _, keycode::DownKey, _, _) if playing => {
-                    gm.move_to(game::Down);
+                Event::KeyDown(_, _, KeyCode::Down, _, _) if playing => {
+                    gm.move_to(Direction::Down);
                 }
-                event::KeyDownEvent(_, _, key, _, _) => {
-                    if key == keycode::EscapeKey {
+                Event::KeyDown(_, _, key, _, _) => {
+                    if key == KeyCode::Escape {
                         break 'main
-                    } else if key == keycode::SpaceKey {
+                    } else if key == KeyCode::Space {
                         if !playing {
                             playing = true;
                             celebrating = false;
@@ -202,7 +208,7 @@ pub fn run(game_size: uint) -> SdlResult<()> {
                     }
 
                 }
-                event::MouseButtonDownEvent(_, _, _, _, x, y) => {
+                Event::MouseButtonDown(_, _, _, _, x, y) => {
                     println!("mouse btn down at ({},{})", x, y);
                 }
 

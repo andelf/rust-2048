@@ -9,7 +9,6 @@ extern crate sdl2_ttf;
 extern crate sdl2_gfx;
 
 use std::os;
-use std::from_str::from_str;
 
 #[allow(dead_code)]
 mod ui;

@@ -13,16 +13,16 @@ pub enum Direction {
 impl Direction {
     fn to_vector(self) -> (int, int) {
         match self {
-            Up    => (0, -1),
-            Right => (1, 0),
-            Down  => (0, 1),
-            Left  => (-1, 0)
+            Direction::Up    => (0, -1),
+            Direction::Right => (1, 0),
+            Direction::Down  => (0, 1),
+            Direction::Left  => (-1, 0)
         }
     }
 
     // Haskell succ/pred???
     fn all_directions<'r>() -> Vec<Direction> {
-        vec![Up, Right, Down, Left]
+        vec![Direction::Up, Direction::Right, Direction::Down, Direction::Left]
     }
 
 }
