@@ -184,19 +184,19 @@ pub fn run(game_size: uint) -> SdlResult<()> {
 
             match event::poll_event() {
                 Event::Quit(_) => break 'main,
-                Event::KeyDown(_, _, KeyCode::Left, _, _) if playing => {
+                Event::KeyDown(_, _, KeyCode::Left, _, _, _) if playing => {
                     gm.move_to(Direction::Left);
                 }
-                Event::KeyDown(_, _, KeyCode::Right, _, _) if playing => {
+                Event::KeyDown(_, _, KeyCode::Right, _, _, _) if playing => {
                     gm.move_to(Direction::Right);
                 }
-                Event::KeyDown(_, _, KeyCode::Up, _, _) if playing => {
+                Event::KeyDown(_, _, KeyCode::Up, _, _, _) if playing => {
                     gm.move_to(Direction::Up);
                 }
-                Event::KeyDown(_, _, KeyCode::Down, _, _) if playing => {
+                Event::KeyDown(_, _, KeyCode::Down, _, _, _) if playing => {
                     gm.move_to(Direction::Down);
                 }
-                Event::KeyDown(_, _, key, _, _) => {
+                Event::KeyDown(_, _, key, _, _, _) => {
                     if key == KeyCode::Escape {
                         break 'main
                     } else if key == KeyCode::Space {
