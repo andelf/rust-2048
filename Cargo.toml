@@ -1,8 +1,12 @@
 [package]
 
 name = "game2048"
-version = "0.0.1"
-authors = ["ShuYu Wang<andelf@gmail.com>"]
+description = "2048 game in Rust"
+repository = "https://github.com/andelf/rust-2048"
+version = "0.0.1-alpha"
+license = "MIT"
+authors = ["ShuYu Wang"]
+keywords = ["2048"]
 
 [[bin]]
 
