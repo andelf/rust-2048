@@ -3,28 +3,20 @@
 name = "game2048"
 description = "2048 game in Rust"
 repository = "https://github.com/andelf/rust-2048"
-version = "0.0.1-alpha"
+version = "0.0.1"
 license = "MIT"
-authors = ["ShuYu Wang"]
-keywords = ["2048"]
+authors = [ "ShuYu Wang <andelf@gmail.com>" ]
+keywords = [ "game", "2048" ]
 
 [[bin]]
 
 name = "game2048"
 path = "src/main.rs"
 
-[dependencies.sdl2]
+[dependencies]
 
-git = "https://github.com/AngryLawyer/rust-sdl2"
+sdl2 = "~0.0.3"
 
-[dependencies.sdl2_image]
+sdl2_ttf = "~0.0.3"
 
-git = "https://github.com/andelf/rust-sdl2_image"
-
-[dependencies.sdl2_ttf]
-
-git = "https://github.com/andelf/rust-sdl2_ttf"
-
-[dependencies.sdl2_gfx]
-
-git = "https://github.com/andelf/rust-sdl2_gfx"
+sdl2_gfx = "~0.0.3"
