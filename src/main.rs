@@ -1,30 +1,22 @@
 #![crate_name = "game2048"]
-#![crate_type = "bin"]
-
-#![feature(globs, macro_rules)]
 
 extern crate sdl2;
-// extern crate sdl2_image;
 extern crate sdl2_ttf;
 extern crate sdl2_gfx;
+extern crate rand;
 
-use std::os;
+use std::env;
 
-#[allow(dead_code)]
 mod ui;
 mod game;
-
+use std::str::FromStr;
 
 fn main() {
-    let args = os::args();
+    let args = env::args().collect::<Vec<String>>();
 
-    sdl2::init(sdl2::INIT_VIDEO);
-    // sdl2_image::init([sdl2_image::InitPng, sdl2_image::InitJpg]);
-    sdl2_ttf::init();
-
-    let size : uint = match args.len() {
+    let size : usize = match args.len() {
         1 => 4,
-        3 => from_str(args[2].as_slice()).unwrap_or(4),
+        3 => i64::from_str(args[2].as_ref()).unwrap_or(4) as usize,
         _ => {
             panic!("usage: ./game2048 --size NUM")
         }
@@ -36,6 +28,4 @@ fn main() {
     }
 
     sdl2_ttf::quit();
-    // sdl2_image::quit();
-    sdl2::quit();
 }
