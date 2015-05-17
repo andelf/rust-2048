@@ -25,4 +25,4 @@ In short!
 
 ![rust-2048 screenshot 1][ss01]
 
-[ss01]: http://i.imgur.com/BmcazX8.png
+[ss01]: http://i.imgur.com/ETA41Po.png?1
