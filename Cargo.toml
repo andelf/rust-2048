@@ -15,14 +15,8 @@ path = "src/main.rs"
 
 [dependencies]
 
-sdl2 = "0.2.1"
-rand = "*"
-num = "*"
-# sdl2_ttf = "0.2.1"
-# sdl2_gfx = "0.2.1"
-
-[dependencies.sdl2_gfx]
-git = "https://github.com/andelf/rust-sdl2_gfx/"
-
-[dependencies.sdl2_ttf]
-git = "https://github.com/andelf/rust-sdl2_ttf/"
+sdl2 = "^0.2.1"
+rand = "^0.3.7"
+num = "^0.1.23"
+sdl2_ttf = "^0.2.3"
+sdl2_gfx = "^0.2.1"
