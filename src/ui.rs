@@ -2,10 +2,7 @@ use std::path::Path;
 use sdl2;
 use sdl2_gfx;
 use sdl2_ttf;
-use sdl2::video;
-use sdl2::video::{WindowPos};
 use sdl2::render;
-use sdl2::render::{RenderDriverIndex};
 use sdl2::keycode::KeyCode;
 
 use sdl2::event::Event;
@@ -135,15 +132,16 @@ fn draw_popup(ren: &mut render::Renderer, font: &sdl2_ttf::Font, msg: &str) -> S
 
 #[allow(non_shorthand_field_patterns)]
 pub fn run(game_size: usize) -> SdlResult<()> {
-    let sdl_context = sdl2::init(sdl2::INIT_VIDEO).unwrap();
+    let mut context = sdl2::init().video().unwrap();
     sdl2_ttf::init();
 
-    let win = try!(video::Window::new(
-        &sdl_context,
-        "Rust - 2048", WindowPos::PosCentered, WindowPos::PosCentered, SCREEN_WIDTH, SCREEN_HEIGHT,
-        video::SHOWN));
-    let mut ren = try!(render::Renderer::from_window(
-        win, RenderDriverIndex::Auto, render::ACCELERATED));
+    let win = context.window("Rust - 2048", SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32)
+        .position_centered()
+        .opengl()
+        .build()
+        .unwrap();
+
+    let mut ren = win.renderer().accelerated().build().unwrap();
 
     let mut fpsm = sdl2_gfx::framerate::FPSManager::new();
     try!(fpsm.set_framerate(50));
@@ -163,7 +161,7 @@ pub fn run(game_size: usize) -> SdlResult<()> {
     let mut playing = false;
     let mut celebrating = false;
 
-    let mut event_pump = sdl_context.event_pump();
+    let mut event_pump = context.event_pump();
 
     'main : loop {
         'event : for event in event_pump.poll_iter() {
