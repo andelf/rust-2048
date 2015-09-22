@@ -3,7 +3,7 @@ use sdl2;
 use sdl2_gfx;
 use sdl2_ttf;
 use sdl2::render;
-use sdl2::keycode::KeyCode;
+use sdl2::keyboard::Keycode;
 
 use sdl2::event::Event;
 // for Renderer trait
@@ -11,7 +11,8 @@ use sdl2_gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
 use sdl2::SdlResult;
 use sdl2::rwops;
-use sdl2_ttf::LoaderRWops;
+use sdl2::rect::Rect;
+use sdl2_ttf::RWopsFontExt;
 use game;
 use game::Direction;
 
@@ -21,7 +22,7 @@ static SCREEN_HEIGHT : i32 = 600;
 // hadle the annoying Rect i32
 macro_rules! rect(
     ($x:expr, $y:expr, $w:expr, $h:expr) => (
-        sdl2::rect::Rect::new($x as i32, $y as i32, $w as i32, $h as i32)
+        sdl2::rect::Rect::new($x as i32, $y as i32, $w as u32, $h as u32)
     )
 );
 
@@ -46,17 +47,17 @@ static UNDER_MACOSX: bool = false;
 
 #[allow(unused_must_use)]
 fn draw_game(gm: &mut game::GameManager, ren: &mut render::Renderer, font: &sdl2_ttf::Font,
-                (x,y,w,h): (i32,i32,i32,i32)) -> SdlResult<()> {
+                (x,y,w,h): (u32,u32,u32,u32)) -> SdlResult<()> {
     assert_eq!(w, h);
     // BEST in 500x500
-    let size = gm.size;
-    let container_padding: i32 = 50  / (size as i32 + 1);
-    let cell_width = (w - container_padding * (size as i32 + 1)) / size as i32 ;
+    let size = gm.size as u32;
+    let container_padding: u32 = 50  / (size as u32 + 1);
+    let cell_width = (w - container_padding * (size + 1)) / size as u32 ;
     assert!(cell_width > 40); // Min width
     try!(ren.box_(x as i16, y as i16, (x+w) as i16, (y+h) as i16, CONTAINER_COLOR));
     gm.grid.each_cell(|j, i, tile_opt| {
-        let i = i as i32;
-        let j = j as i32;
+        let i = i as u32;
+        let j = j as u32;
         let val = match tile_opt {
             Some(ref tile) => tile.value,
             None           => 0,
@@ -74,8 +75,10 @@ fn draw_game(gm: &mut game::GameManager, ren: &mut render::Renderer, font: &sdl2
         if val != 0 {
             let (tex, tw, th) = {
                 let wd = format!("{}", val);
-                let (w, h) = font.size_of_str(wd.as_ref()).ok().expect("size of str");
-                let text = font.render_str_blended(wd.as_ref(), FG_COLOR).ok().expect("renderred surface");
+                let (w, h) = font.size(&wd[..]).ok().expect("size of str");
+                let text = font.render(&wd[..],
+                                       sdl2_ttf::RenderMode::Blended { foreground: FG_COLOR})
+                    .ok().expect("renderred surface");
                 (ren.create_texture_from_surface(&text).ok().expect("create texture"), w, h)
             };
 
@@ -85,11 +88,12 @@ fn draw_game(gm: &mut game::GameManager, ren: &mut render::Renderer, font: &sdl2
                 cell_width as f64 / th as f64
             } else { 1.0 };
 
-            let tw = (tw as f64 * ratio) as i32;
-            let th = (th as f64 * ratio) as i32;
+            let tw = (tw as f64 * ratio) as u32;
+            let th = (th as f64 * ratio) as u32;
 
-            ren.drawer().copy(&tex, None, Some(rect!(bx as i32 + cell_width / 2 - tw/2, by as i32 + cell_width / 2 - th/2,
-                                            tw, th)));
+            ren.copy(&tex, None, Rect::new(bx as i32 + cell_width as i32 / 2 - tw as i32 /2,
+                                           by as i32 + cell_width as i32 / 2 - th as i32 /2,
+                                           tw, th).ok().expect("a rect"));
         }
     });
     Ok(())
@@ -98,44 +102,45 @@ fn draw_game(gm: &mut game::GameManager, ren: &mut render::Renderer, font: &sdl2
 fn draw_title(ren: &mut render::Renderer, font: &sdl2_ttf::Font) -> SdlResult<()> {
     let (tex2, w, h) = {
         let wd = "Rust - 2048";
-        let (w, h) = try!(font.size_of_str(wd));
-        let text = try!(font.render_str_blended(wd, FG_COLOR));
+        let (w, h) = try!(font.size(&wd[..]));
+        let text = try!(font.render(wd, sdl2_ttf::RenderMode::Blended { foreground: FG_COLOR}));
         (ren.create_texture_from_surface(&text).unwrap(), w, h)
     };
-    ren.drawer().copy(&tex2, None, Some(rect!(SCREEN_WIDTH / 2 - w / 2, 20, w, h)));
+    ren.copy(&tex2, None, Rect::new(SCREEN_WIDTH / 2 - w as i32 / 2, 20, w, h).ok().expect("a rect"));
     Ok(())
 }
 
 // FIXME: tooooooo many type convertion
 fn draw_popup(ren: &mut render::Renderer, font: &sdl2_ttf::Font, msg: &str) -> SdlResult<()> {
     let (tex, w, h) = {
-        let (w, h) = try!(font.size_of_str(msg));
-        let text = try!(font.render_str_blended(msg, FG_COLOR));
+        let (w, h) = try!(font.size(&msg[..]));
+        let text = try!(font.render(msg, sdl2_ttf::RenderMode::Blended { foreground: FG_COLOR}));
         (try!(ren.create_texture_from_surface(&text)), w, h)
     };
-    ren.rounded_box((SCREEN_WIDTH / 2 - w / 2) as i16,
-                    (SCREEN_HEIGHT / 2 - h / 2) as i16,
-                    (SCREEN_WIDTH / 2 + w / 2) as i16,
-                    (SCREEN_HEIGHT / 2 + h / 2) as i16,
+    ren.rounded_box((SCREEN_WIDTH / 2 - w as i32 / 2) as i16,
+                    (SCREEN_HEIGHT / 2 - h as i32 / 2) as i16,
+                    (SCREEN_WIDTH / 2 + w as i32/ 2) as i16,
+                    (SCREEN_HEIGHT / 2 + h as i32/ 2) as i16,
                     5,
                     BG_COLOR).unwrap();
-    ren.rounded_rectangle((SCREEN_WIDTH / 2 - w / 2) as i16,
-                          (SCREEN_HEIGHT / 2 - h / 2) as i16,
-                          (SCREEN_WIDTH / 2 + w / 2) as i16,
-                          (SCREEN_HEIGHT / 2 + h / 2) as i16,
+    ren.rounded_rectangle((SCREEN_WIDTH / 2 - w as i32/ 2) as i16,
+                          (SCREEN_HEIGHT / 2 - h as i32 / 2) as i16,
+                          (SCREEN_WIDTH / 2 + w as i32 / 2) as i16,
+                          (SCREEN_HEIGHT / 2 + h as i32/ 2) as i16,
                           5,
                           FG_COLOR).unwrap();
-    ren.drawer().copy(&tex, None, Some(rect!(SCREEN_WIDTH / 2 - w / 2, SCREEN_HEIGHT / 2 - h / 2,
-                                             w, h)));
+    ren.copy(&tex, None, Rect::new(SCREEN_WIDTH / 2 - w as i32/ 2, SCREEN_HEIGHT / 2 - h as i32 / 2,
+                                   w, h).ok().expect("a rect"));
     Ok(())
 }
 
 #[allow(non_shorthand_field_patterns)]
 pub fn run(game_size: usize) -> SdlResult<()> {
-    let mut context = sdl2::init().video().unwrap();
-    sdl2_ttf::init();
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsys = sdl_context.video().unwrap();
+    let _ttf_ctxt = sdl2_ttf::init();
 
-    let win = context.window("Rust - 2048", SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32)
+    let win = video_subsys.window("Rust - 2048", SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32)
         .position_centered()
         .opengl()
         .build()
@@ -161,20 +166,20 @@ pub fn run(game_size: usize) -> SdlResult<()> {
     let mut playing = false;
     let mut celebrating = false;
 
-    let mut event_pump = context.event_pump();
+    let mut event_pump = sdl_context.event_pump().unwrap();
 
     'main : loop {
         'event : for event in event_pump.poll_iter() {
             fpsm.delay();
-            ren.drawer().set_draw_color(BG_COLOR);
-            ren.drawer().clear();
+            ren.set_draw_color(BG_COLOR);
+            ren.clear();
             // == main drawing ==
             draw_title(&mut ren, &font).unwrap();
             try!(ren.string(0i16, 0i16, format!("frames: {}", fpsm.get_frame_count()).as_ref(), CHAR_COLOR));
 
             try!(ren.string(200, 90, format!("your score: {}", gm.score).as_ref(), CHAR_COLOR));
 
-            try!(draw_game(&mut gm, &mut ren, &font, (SCREEN_WIDTH / 2 - 400 / 2, 100, 400, 400)));
+            try!(draw_game(&mut gm, &mut ren, &font, ((SCREEN_WIDTH / 2 - 400 / 2) as u32, 100, 400, 400)));
 
             if celebrating || (playing && !gm.moves_available()) { // can't move
                 try!(draw_popup(&mut ren, &font, format!("Score: {}! Max Cell: {}", gm.score, "NaN").as_ref()));
@@ -186,25 +191,25 @@ pub fn run(game_size: usize) -> SdlResult<()> {
             }
 
             // == main drawing ends ==
-            ren.drawer().present();
+            ren.present();
             match event {
                 Event::Quit {..} => break 'main,
-                Event::KeyDown {keycode: KeyCode::Left, ..} if playing => {
+                Event::KeyDown {keycode: Some(Keycode::Left), ..} if playing => {
                     gm.move_to(Direction::Left);
                 }
-                Event::KeyDown {keycode: KeyCode::Right, ..} if playing => {
+                Event::KeyDown {keycode: Some(Keycode::Right), ..} if playing => {
                     gm.move_to(Direction::Right);
                 }
-                Event::KeyDown {keycode: KeyCode::Up, ..} if playing => {
+                Event::KeyDown {keycode: Some(Keycode::Up), ..} if playing => {
                     gm.move_to(Direction::Up);
                 }
-                Event::KeyDown {keycode: KeyCode::Down, ..} if playing => {
+                Event::KeyDown {keycode: Some(Keycode::Down), ..} if playing => {
                     gm.move_to(Direction::Down);
                 }
                 Event::KeyDown {keycode: key, ..} => {
-                    if key == KeyCode::Escape {
+                    if key == Some(Keycode::Escape) {
                         break 'main
-                    } else if key == KeyCode::Space {
+                    } else if key == Some(Keycode::Space) {
                         if !playing {
                             playing = true;
                             celebrating = false;

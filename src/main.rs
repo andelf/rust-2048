@@ -27,5 +27,4 @@ fn main() {
         Err(e) => panic!("Error while running game: {}", e),
     }
 
-    sdl2_ttf::quit();
 }
